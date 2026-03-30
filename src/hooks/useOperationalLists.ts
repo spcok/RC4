@@ -1,45 +1,64 @@
-import { useState, useEffect } from 'react';
-import { Subscription } from 'rxjs';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { AnimalCategory, OperationalList } from '../types';
-import { bootCoreDatabase } from '../lib/bootCoreDatabase';
+import { supabase } from '../lib/supabase';
+import { queryClient } from '../lib/queryClient';
 
 export function useOperationalLists(category: AnimalCategory = AnimalCategory.ALL) {
-  const [lists, setLists] = useState<OperationalList[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: lists = [], isLoading } = useQuery({
+    queryKey: ['operational_lists'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('operational_lists')
+        .select('*')
+        .eq('is_deleted', false);
+      if (error) throw error;
+      return data as OperationalList[];
+    },
+  });
 
-  useEffect(() => {
-    let isMounted = true;
-    let sub: Subscription | null = null;
+  const addMutation = useMutation({
+    mutationFn: async ({ type, value, itemCategory }: { type: 'food' | 'method' | 'location' | 'event', value: string, itemCategory: AnimalCategory }) => {
+      const { error } = await supabase.from('operational_lists').insert({
+        id: crypto.randomUUID(),
+        type,
+        value,
+        category: itemCategory,
+        is_deleted: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['operational_lists'] }),
+  });
 
-    const loadData = async () => {
-      try {
-        const db = await bootCoreDatabase();
-        if (!db || !db.collections || !db.collections.operational_lists) {
-          if (isMounted) setIsLoading(false);
-          return;
-        }
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, value }: { id: string, value: string }) => {
+      const { error } = await supabase
+        .from('operational_lists')
+        .update({ 
+          value,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['operational_lists'] }),
+  });
 
-        sub = db.collections.operational_lists
-          .find({ selector: { is_deleted: false } })
-          .$.subscribe(docs => {
-            if (isMounted) {
-              setLists(docs.map(doc => doc.toJSON() as OperationalList));
-              setIsLoading(false);
-            }
-          });
-      } catch (err) {
-        console.error('Failed to load operational lists:', err);
-        if (isMounted) setIsLoading(false);
-      }
-    };
-
-    loadData();
-
-    return () => {
-      isMounted = false;
-      if (sub) sub.unsubscribe();
-    };
-  }, []);
+  const removeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('operational_lists')
+        .update({ 
+          is_deleted: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['operational_lists'] }),
+  });
 
   const foodTypes = lists
     .filter(l => l.type === 'food' && (l.category === category || l.category === AnimalCategory.ALL))
@@ -54,65 +73,14 @@ export function useOperationalLists(category: AnimalCategory = AnimalCategory.AL
     .filter(l => l.type === 'location')
     .sort((a, b) => a.value.localeCompare(b.value));
 
-  const addListItem = async (type: 'food' | 'method' | 'location' | 'event', value: string, itemCategory: AnimalCategory = category) => {
-    try {
-      const db = await bootCoreDatabase();
-      await db.collections.operational_lists.insert({
-        id: crypto.randomUUID(),
-        type,
-        value,
-        category: itemCategory,
-        is_deleted: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      });
-    } catch (error) {
-      console.error('Failed to add list item:', error);
-      throw error;
-    }
-  };
-
-  const updateListItem = async (id: string, value: string) => {
-    try {
-      const db = await bootCoreDatabase();
-      const doc = await db.collections.operational_lists.findOne(id).exec();
-      if (doc) {
-        await doc.patch({ 
-          value,
-          updated_at: new Date().toISOString()
-        });
-      }
-    } catch (error) {
-      console.error('Failed to update list item:', error);
-      throw error;
-    }
-  };
-
-  const removeListItem = async (id: string) => {
-    try {
-      const db = await bootCoreDatabase();
-      const doc = await db.collections.operational_lists.findOne(id).exec();
-      if (doc) {
-        // Soft delete for sync
-        await doc.patch({ 
-          is_deleted: true,
-          updated_at: new Date().toISOString()
-        });
-      }
-    } catch (error) {
-      console.error('Failed to remove list item:', error);
-      throw error;
-    }
-  };
-
   return {
     foodTypes,
     feedMethods,
     eventTypes,
     locations,
-    addListItem,
-    updateListItem,
-    removeListItem,
+    addListItem: (type: 'food' | 'method' | 'location' | 'event', value: string, itemCategory: AnimalCategory = category) => addMutation.mutate({ type, value, itemCategory }),
+    updateListItem: (id: string, value: string) => updateMutation.mutate({ id, value }),
+    removeListItem: (id: string) => removeMutation.mutate(id),
     isLoading
   };
 }

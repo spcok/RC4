@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { X, Check, Camera, Loader2, Zap, Shield, History, Info, Globe, Skull, Users, Thermometer, Scale } from 'lucide-react';
 import { Animal, AnimalCategory, HazardRating, ConservationStatus, EntityType } from '../../types';
@@ -6,11 +6,12 @@ import { useAnimalForm } from './useAnimalForm';
 import { getAnimalIntelligence } from '../../services/geminiService';
 import { convertToGrams, convertFromGrams } from '../../services/weightUtils';
 import { useOperationalLists } from '../../hooks/useOperationalLists';
-import { bootCoreDatabase } from '../../lib/bootCoreDatabase';
 import Cropper from 'react-easy-crop';
 import { getCroppedImg } from '../../utils/cropImage';
 import { queueFileUpload } from '../../lib/storageEngine';
-import { Subscription } from 'rxjs';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { supabase } from '../../lib/supabase';
+import { queryClient } from '../../lib/queryClient';
 
 interface AnimalFormModalProps {
   isOpen: boolean;
@@ -37,61 +38,33 @@ const AnimalFormModal: React.FC<AnimalFormModalProps> = ({ isOpen, onClose, init
   const [isUploadingCrop, setIsUploadingCrop] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
 
-  const [parentMobs, setParentMobs] = useState<Animal[]>([]);
-  const [linkedChildrenCount, setLinkedChildrenCount] = useState(0);
+  const { data: parentMobs = [] } = useQuery({
+    queryKey: ['parentMobs'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('animals')
+        .select('*')
+        .eq('is_deleted', false)
+        .eq('entity_type', EntityType.GROUP);
+      if (error) throw error;
+      return data as Animal[];
+    }
+  });
 
-  useEffect(() => {
-    let isMounted = true;
-    let parentMobsSub: Subscription | null = null;
-    let linkedChildrenSub: Subscription | null = null;
-
-    const loadData = async () => {
-      try {
-        const db = await bootCoreDatabase();
-        if (!db || !db.collections || !db.collections.animals) return;
-
-        // Fetch potential parent mobs
-        parentMobsSub = db.collections.animals
-          .find({
-            selector: {
-              is_deleted: false,
-              entity_type: EntityType.GROUP
-            }
-          })
-          .$.subscribe(docs => {
-            if (isMounted) {
-              setParentMobs(docs.map(doc => doc.toJSON() as Animal));
-            }
-          });
-
-        // If this is a group, count its linked children
-        if (initialData?.id && initialData.entity_type === EntityType.GROUP) {
-          linkedChildrenSub = db.collections.animals
-            .find({
-              selector: {
-                is_deleted: false,
-                parent_mob_id: initialData.id
-              }
-            })
-            .$.subscribe(docs => {
-              if (isMounted) {
-                setLinkedChildrenCount(docs.length);
-              }
-            });
-        }
-      } catch (error) {
-        console.error('Failed to load modal data:', error);
-      }
-    };
-
-    loadData();
-
-    return () => {
-      isMounted = false;
-      if (parentMobsSub) parentMobsSub.unsubscribe();
-      if (linkedChildrenSub) linkedChildrenSub.unsubscribe();
-    };
-  }, [initialData?.id, initialData?.entity_type]);
+  const { data: linkedChildrenCount = 0 } = useQuery({
+    queryKey: ['linkedChildrenCount', initialData?.id],
+    queryFn: async () => {
+      if (!initialData?.id || initialData.entity_type !== EntityType.GROUP) return 0;
+      const { error, count } = await supabase
+        .from('animals')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_deleted', false)
+        .eq('parent_mob_id', initialData.id);
+      if (error) throw error;
+      return count || 0;
+    },
+    enabled: !!initialData?.id && initialData.entity_type === EntityType.GROUP
+  });
 
   const onFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -148,6 +121,25 @@ const AnimalFormModal: React.FC<AnimalFormModalProps> = ({ isOpen, onClose, init
     setWinterWeightValues(prev => ({ ...prev, [field]: parseInt(value) || 0 }));
   };
 
+  const upsertAnimalMutation = useMutation({
+    mutationFn: async (payload: Animal) => {
+      const { error } = await supabase
+        .from('animals')
+        .upsert(payload);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['parentMobs'] });
+      queryClient.invalidateQueries({ queryKey: ['animals'] });
+      onClose();
+    },
+    onError: (error) => {
+      console.error('Failed to save animal:', error);
+      const message = error instanceof Error ? error.message : "Failed to save record. Please check your connection.";
+      alert(message);
+    }
+  });
+
   const onSubmit = form.handleSubmit(async (data) => {
     const flightGrams = convertToGrams(weightUnit, flightWeightValues);
     const winterGrams = convertToGrams(weightUnit, winterWeightValues);
@@ -176,6 +168,7 @@ const AnimalFormModal: React.FC<AnimalFormModalProps> = ({ isOpen, onClose, init
 
     const payload = {
       ...sanitizedData,
+      id: targetId,
       image_url: finalImageUrl,
       critical_husbandry_notes: sanitizedData.critical_husbandry_notes
         ? sanitizedData.critical_husbandry_notes.split('\n').map(n => n.trim()).filter(n => n.length > 0)
@@ -187,28 +180,13 @@ const AnimalFormModal: React.FC<AnimalFormModalProps> = ({ isOpen, onClose, init
       misting_frequency: sanitizedData.misting_frequency,
       flying_weight_g: flightGrams > 0 ? flightGrams : null,
       winter_weight_g: winterGrams > 0 ? winterGrams : null,
-      weight_unit: weightUnit === 'lb' ? 'lbs_oz' : weightUnit
+      weight_unit: weightUnit === 'lb' ? 'lbs_oz' : weightUnit,
+      updated_at: new Date().toISOString(),
+      created_at: initialData?.created_at || new Date().toISOString(),
+      is_deleted: false
     };
-    try {
-      const db = await bootCoreDatabase();
-      
-      if (!db || !db.collections || !db.collections.animals) {
-        throw new Error("Local database is not fully initialized. Please try again in a second.");
-      }
-
-      await db.collections.animals.upsert({
-        ...payload,
-        id: targetId,
-        updated_at: new Date().toISOString(),
-        created_at: initialData?.created_at || new Date().toISOString(),
-        is_deleted: false
-      });
-      onClose();
-    } catch (error) {
-      console.error('Failed to save animal:', error);
-      const message = error instanceof Error ? error.message : "Failed to save record. Please check your connection.";
-      alert(message);
-    }
+    
+    upsertAnimalMutation.mutate(payload);
   }, (errors) => {
     // Strip the DOM 'ref' from the errors object before logging to prevent Circular JSON crashes in the global bug reporter
     const safeErrors = Object.keys(errors).reduce((acc, key) => {

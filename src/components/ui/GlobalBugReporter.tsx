@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { MessageSquareWarning, X, Send, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { useAuthStore } from '../../store/authStore';
-import { bootCoreDatabase } from '../../lib/bootCoreDatabase';
+import { supabase } from '../../lib/supabase';
 
 const GlobalBugReporter: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -26,8 +26,6 @@ const GlobalBugReporter: React.FC = () => {
     const payload = {
       id: reportId,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      is_deleted: false,
       message: `[${severity.toUpperCase()}] ${title.trim()}\n\n${message.trim()}`,
       is_online: navigator.onLine,
       url: window.location.href,
@@ -36,8 +34,8 @@ const GlobalBugReporter: React.FC = () => {
     };
 
     try {
-      const db = await bootCoreDatabase();
-      await db.bug_reports.insert(payload);
+      const { error } = await supabase.from('bug_reports').insert(payload);
+      if (error) throw error;
       
       setIsSuccess(true);
       setTitle('');
@@ -49,8 +47,8 @@ const GlobalBugReporter: React.FC = () => {
         setIsOpen(false);
       }, 1500);
     } catch (err) {
-      console.error('Failed to queue bug report:', err);
-      setError('Failed to queue report. Please try again later.');
+      console.error('Failed to submit bug report:', err);
+      setError('Failed to submit report. Please try again later.');
     } finally {
       setIsSubmitting(false);
     }

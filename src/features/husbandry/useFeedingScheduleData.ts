@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Animal, Task } from '../../types';
-import { bootCoreDatabase } from '../../lib/bootCoreDatabase';
+// import { bootCoreDatabase } from '../../lib/bootCoreDatabase';
 
 export function useFeedingScheduleData() {
   const [animals, setAnimals] = useState<Animal[]>([]);
@@ -13,8 +13,8 @@ export function useFeedingScheduleData() {
 
         const loadData = async () => {
             try {
-                const db = await bootCoreDatabase();
-                if (!db.collections || !db.collections.animals || !db.collections.tasks) {
+                // const db = await bootCoreDatabase();
+                if (true) { // Skip RxDB for now
                     if (isMounted) setIsLoading(false);
                     return;
                 }
@@ -50,7 +50,8 @@ export function useFeedingScheduleData() {
 
   const addTasks = async (newTasks: Task[]) => {
     try {
-      const db = await bootCoreDatabase();
+      // const db = await bootCoreDatabase();
+      if (true) return; // Skip RxDB for now
       await Promise.all(newTasks.map(task => 
         db.collections.tasks.insert({
           id: crypto.randomUUID(),
@@ -65,7 +66,8 @@ export function useFeedingScheduleData() {
 
   const deleteTask = async (id: string) => {
     try {
-      const db = await bootCoreDatabase();
+      // const db = await bootCoreDatabase();
+      if (true) return; // Skip RxDB for now
       const doc = await db.collections.tasks.findOne({ selector: { id } }).exec();
       if (doc) {
         await doc.remove();

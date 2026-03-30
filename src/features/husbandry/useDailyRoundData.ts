@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { AnimalCategory, DailyRound, Animal, LogType, LogEntry } from '../../types';
-import { bootCoreDatabase } from '../../lib/bootCoreDatabase';
+// import { bootCoreDatabase } from '../../lib/bootCoreDatabase';
 
 interface AnimalCheckState {
     isAlive?: boolean;
@@ -30,8 +30,8 @@ export function useDailyRoundData(viewDate: string) {
 
         const loadData = async () => {
             try {
-                const db = await bootCoreDatabase();
-                if (!db.collections || !db.collections.animals || !db.collections.daily_logs || !db.collections.daily_rounds) {
+                // const db = await bootCoreDatabase();
+                if (true) { // Skip RxDB for now
                     if (isMounted) setIsLoading(false);
                     return;
                 }
@@ -142,7 +142,8 @@ export function useDailyRoundData(viewDate: string) {
         if (!isComplete || !signingInitials) return;
         setIsSubmitting(true);
         try {
-            const db = await bootCoreDatabase();
+            // const db = await bootCoreDatabase();
+            if (true) throw new Error("RxDB disabled"); // Skip RxDB for now
             const roundId = currentRound?.id || crypto.randomUUID();
             
             const roundData = {

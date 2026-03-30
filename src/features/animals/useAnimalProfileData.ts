@@ -1,48 +1,27 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Animal, ClinicalNote, LogEntry, Task } from '../../types';
-import { bootCoreDatabase } from '../../lib/bootCoreDatabase';
+import { supabase } from '../../lib/supabase';
 
 export function useAnimalProfileData(animalId: string | undefined) {
-  const [animal, setAnimal] = useState<Animal | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: animal, isLoading } = useQuery({
+    queryKey: ['animal', animalId],
+    queryFn: async () => {
+      if (!animalId) return null;
+      const { data, error } = await supabase
+        .from('animals')
+        .select('*')
+        .eq('id', animalId)
+        .single();
+      
+      if (error) throw error;
+      return data as Animal;
+    },
+    enabled: !!animalId,
+  });
+
   const dailyLogs: LogEntry[] = [];
   const medicalLogs: ClinicalNote[] = [];
   const tasks: Task[] = [];
-
-  useEffect(() => {
-    if (!animalId) {
-      setTimeout(() => setIsLoading(false), 0);
-      return;
-    }
-
-    let isMounted = true;
-
-    const loadData = async () => {
-      try {
-        setIsLoading(true);
-        const db = await bootCoreDatabase();
-        if (!db || !db.collections || !db.collections.animals) return;
-
-        const doc = await db.collections.animals.findOne({ selector: { id: animalId } }).exec();
-        
-        if (isMounted) {
-          setAnimal(doc ? (doc.toJSON() as Animal) : null);
-          // Note: Daily logs, medical logs, and tasks would also need to be fetched here
-          // based on the animalId, but the request only specified the animal itself.
-          setIsLoading(false);
-        }
-      } catch (err) {
-        console.error("Failed to load animal profile data:", err);
-        if (isMounted) setIsLoading(false);
-      }
-    };
-
-    loadData();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [animalId]);
 
   return { animal, dailyLogs, medicalLogs, tasks, isLoading };
 }

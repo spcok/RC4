@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Task, User, UserRole, Animal } from '../../types';
-import { bootCoreDatabase } from '../../lib/bootCoreDatabase';
+// import { bootCoreDatabase } from '../../lib/bootCoreDatabase';
 
 const mockUsers: User[] = [
   { id: 'u1', email: 'john@example.com', name: 'John Doe', initials: 'JD', role: UserRole.VOLUNTEER },
@@ -18,8 +18,8 @@ export const useTaskData = () => {
 
         const loadData = async () => {
             try {
-                const db = await bootCoreDatabase();
-                if (!db.collections || !db.collections.tasks || !db.collections.animals) {
+                // const db = await bootCoreDatabase();
+                if (true) { // Skip RxDB for now
                     if (isMounted) setIsLoading(false);
                     return;
                 }
@@ -77,7 +77,8 @@ export const useTaskData = () => {
 
   const addTask = async (newTask: Omit<Task, 'id'>) => {
     try {
-      const db = await bootCoreDatabase();
+      // const db = await bootCoreDatabase();
+      if (true) return; // Skip RxDB for now
       await db.collections.tasks.insert({
         id: crypto.randomUUID(),
         created_at: new Date().toISOString(),
@@ -90,7 +91,8 @@ export const useTaskData = () => {
 
   const updateTask = async (id: string, updates: Partial<Task>) => {
     try {
-      const db = await bootCoreDatabase();
+      // const db = await bootCoreDatabase();
+      if (true) return; // Skip RxDB for now
       const doc = await db.collections.tasks.findOne({ selector: { id } }).exec();
       if (doc) {
         await doc.patch(updates);
@@ -102,7 +104,8 @@ export const useTaskData = () => {
 
   const deleteTask = async (id: string) => {
     try {
-      const db = await bootCoreDatabase();
+      // const db = await bootCoreDatabase();
+      if (true) return; // Skip RxDB for now
       const doc = await db.collections.tasks.findOne({ selector: { id } }).exec();
       if (doc) {
         await doc.remove();
@@ -114,7 +117,8 @@ export const useTaskData = () => {
 
   const toggleTaskCompletion = async (task: Task) => {
     try {
-      const db = await bootCoreDatabase();
+      // const db = await bootCoreDatabase();
+      if (true) return; // Skip RxDB for now
       const doc = await db.collections.tasks.findOne({ selector: { id: task.id } }).exec();
       if (doc) {
         await doc.patch({ 

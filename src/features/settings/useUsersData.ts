@@ -1,99 +1,62 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { User, RolePermissionConfig } from '../../types';
-import { bootCoreDatabase } from '../../lib/bootCoreDatabase';
+import { supabase } from '../../lib/supabase';
+import { queryClient } from '../../lib/queryClient';
 
 export function useUsersData() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [rolePermissions, setRolePermissions] = useState<RolePermissionConfig[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: users = [], isLoading: isLoadingUsers } = useQuery({
+    queryKey: ['users'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('users').select('*');
+      if (error) throw error;
+      return data as User[];
+    },
+  });
 
-  const refresh = useCallback(() => {
-    // No-op with RxDB since it's reactive
-  }, []);
+  const { data: rolePermissions = [], isLoading: isLoadingRoles } = useQuery({
+    queryKey: ['role_permissions'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('role_permissions').select('*');
+      if (error) throw error;
+      return data as RolePermissionConfig[];
+    },
+  });
 
-  useEffect(() => {
-    let isMounted = true;
-    const subs: { unsubscribe: () => void }[] = [];
+  const isLoading = isLoadingUsers || isLoadingRoles;
 
-    const loadData = async () => {
-      try {
-        const db = await bootCoreDatabase();
-        
-        if (!db.collections || !db.collections.users || !db.collections.role_permissions) {
-          if (isMounted) setIsLoading(false);
-          return;
-        }
+  const deleteUserMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('users').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
+  });
 
-        // Subscribe to users
-        const usersSub = db.collections.users.find().$.subscribe(docs => {
-          if (isMounted) {
-            setUsers(docs.map(doc => doc.toJSON() as User));
-            setIsLoading(false);
-          }
-        });
-        subs.push(usersSub);
+  const updateUserMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string, updates: Partial<User> }) => {
+      const { error } = await supabase.from('users').update(updates).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
+  });
 
-        // Subscribe to role_permissions
-        const rolesSub = db.collections.role_permissions.find().$.subscribe(docs => {
-          if (isMounted) {
-            setRolePermissions(docs.map(doc => doc.toJSON() as RolePermissionConfig));
-          }
-        });
-        subs.push(rolesSub);
+  const updateRolePermissionsMutation = useMutation({
+    mutationFn: async ({ role, updates }: { role: string, updates: Partial<RolePermissionConfig> }) => {
+      const { error } = await supabase
+        .from('role_permissions')
+        .update(updates)
+        .eq('id', role.toLowerCase());
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['role_permissions'] }),
+  });
 
-      } catch (err) {
-        console.error('Failed to load users data:', err);
-        if (isMounted) setIsLoading(false);
-      }
-    };
-
-    loadData();
-
-    return () => {
-      isMounted = false;
-      subs.forEach(sub => sub.unsubscribe());
-    };
-  }, []);
-
-  // --- SECURE USER DELETION PIPELINE ---
-  const deleteUser = async (id: string) => {
-    try {
-      const db = await bootCoreDatabase();
-      const doc = await db.collections.users.findOne({ selector: { id } }).exec();
-      if (doc) {
-        await doc.remove();
-      }
-    } catch (err) {
-      console.error('Failed to delete user:', err);
-    }
+  return { 
+    users, 
+    rolePermissions, 
+    isLoading, 
+    deleteUser: deleteUserMutation.mutate, 
+    updateUser: (id: string, updates: Partial<User>) => updateUserMutation.mutate({ id, updates }), 
+    updateRolePermissions: (role: string, updates: Partial<RolePermissionConfig>) => updateRolePermissionsMutation.mutate({ role, updates }) 
   };
-
-  const updateUser = async (id: string, updates: Partial<User>) => {
-    try {
-      const db = await bootCoreDatabase();
-      const doc = await db.collections.users.findOne({ selector: { id } }).exec();
-      if (doc) {
-        await doc.patch(updates);
-      }
-    } catch (err) {
-      console.error('Failed to update user:', err);
-    }
-  };
-
-  const updateRolePermissions = async (role: string, updates: Partial<RolePermissionConfig>) => {
-    try {
-      const db = await bootCoreDatabase();
-      // For updateRolePermissions, ensure you are querying by id: role.toLowerCase()
-      const doc = await db.collections.role_permissions.findOne({ 
-        selector: { id: role.toLowerCase() } 
-      }).exec();
-      if (doc) {
-        await doc.patch(updates);
-      }
-    } catch (err) {
-      console.error('Failed to update role permissions:', err);
-    }
-  };
-
-  return { users, rolePermissions, isLoading, deleteUser, updateUser, updateRolePermissions, refresh };
 }

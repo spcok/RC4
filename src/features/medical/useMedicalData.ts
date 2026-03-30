@@ -1,202 +1,157 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Subscription } from 'rxjs';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { ClinicalNote, MARChart, QuarantineRecord, Animal } from '../../types';
-import { bootCoreDatabase } from '../../lib/bootCoreDatabase';
+import { supabase } from '../../lib/supabase';
+import { queryClient } from '../../lib/queryClient';
 
 export function useMedicalData() {
-  const [clinicalNotes, setClinicalNotes] = useState<ClinicalNote[]>([]);
-  const [marCharts, setMarCharts] = useState<MARChart[]>([]);
-  const [quarantineRecords, setQuarantineRecords] = useState<QuarantineRecord[]>([]);
-  const [animals, setAnimals] = useState<Animal[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: clinicalNotes = [], isLoading: isLoadingNotes } = useQuery({
+    queryKey: ['medical_logs'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('medical_logs').select('*').eq('is_deleted', false);
+      if (error) throw error;
+      return data as ClinicalNote[];
+    },
+  });
 
-  useEffect(() => {
-    let isMounted = true;
-    const subs: Subscription[] = [];
+  const { data: marCharts = [], isLoading: isLoadingCharts } = useQuery({
+    queryKey: ['mar_charts'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('mar_charts').select('*').eq('is_deleted', false);
+      if (error) throw error;
+      return data as MARChart[];
+    },
+  });
 
-    const loadData = async () => {
-      try {
-        setIsLoading(true);
-        const db = await bootCoreDatabase();
-        
-        if (!db || !db.collections || !db.collections.medical_logs || !db.collections.mar_charts || !db.collections.quarantine_records || !db.collections.animals) {
-          if (isMounted) setIsLoading(false);
-          return;
-        }
+  const { data: quarantineRecords = [], isLoading: isLoadingQuarantine } = useQuery({
+    queryKey: ['quarantine_records'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('quarantine_records').select('*').eq('is_deleted', false);
+      if (error) throw error;
+      return data as QuarantineRecord[];
+    },
+  });
 
-        // Subscribe to clinical notes (medical_logs)
-        subs.push(
-          db.collections.medical_logs
-            .find({ selector: { is_deleted: false } })
-            .$.subscribe(docs => {
-              if (isMounted) setClinicalNotes(docs.map(doc => doc.toJSON() as ClinicalNote));
-            })
-        );
+  const { data: animals = [], isLoading: isLoadingAnimals } = useQuery({
+    queryKey: ['animals'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('animals').select('*').eq('is_deleted', false);
+      if (error) throw error;
+      return data as Animal[];
+    },
+  });
 
-        // Subscribe to MAR charts
-        subs.push(
-          db.collections.mar_charts
-            .find({ selector: { is_deleted: false } })
-            .$.subscribe(docs => {
-              if (isMounted) setMarCharts(docs.map(doc => doc.toJSON() as MARChart));
-            })
-        );
+  const isLoading = isLoadingNotes || isLoadingCharts || isLoadingQuarantine || isLoadingAnimals;
 
-        // Subscribe to quarantine records
-        subs.push(
-          db.collections.quarantine_records
-            .find({ selector: { is_deleted: false } })
-            .$.subscribe(docs => {
-              if (isMounted) setQuarantineRecords(docs.map(doc => doc.toJSON() as QuarantineRecord));
-            })
-        );
-
-        // Subscribe to animals (for names)
-        subs.push(
-          db.collections.animals
-            .find({ selector: { is_deleted: false } })
-            .$.subscribe(docs => {
-              if (isMounted) {
-                setAnimals(docs.map(doc => doc.toJSON() as Animal));
-                setIsLoading(false);
-              }
-            })
-        );
-
-      } catch (err) {
-        console.error('Failed to load medical data:', err);
-        if (isMounted) setIsLoading(false);
-      }
-    };
-
-    loadData();
-
-    return () => {
-      isMounted = false;
-      subs.forEach(sub => sub.unsubscribe());
-    };
-  }, []);
-
-  const addClinicalNote = useCallback(async (note: Omit<ClinicalNote, 'id' | 'animal_name'>) => {
-    try {
-      const db = await bootCoreDatabase();
-      const animal = await db.collections.animals.findOne(note.animal_id).exec();
-      await db.collections.medical_logs.insert({
+  const addClinicalNoteMutation = useMutation({
+    mutationFn: async (note: Omit<ClinicalNote, 'id' | 'animal_name'>) => {
+      const { data: animal } = await supabase.from('animals').select('name').eq('id', note.animal_id).single();
+      const { error } = await supabase.from('medical_logs').insert({
         ...note,
         id: crypto.randomUUID(),
-        animal_name: animal?.get('name') || 'Unknown',
+        animal_name: animal?.name || 'Unknown',
         is_deleted: false,
         updated_at: new Date().toISOString()
       });
-    } catch (err) {
-      console.error('Failed to add clinical note:', err);
-      throw err;
-    }
-  }, []);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['medical_logs'] }),
+  });
 
-  const updateClinicalNote = useCallback(async (note: ClinicalNote) => {
-    try {
-      const db = await bootCoreDatabase();
-      const doc = await db.collections.medical_logs.findOne(note.id).exec();
-      if (doc) {
-        await doc.patch({
-          ...note,
-          updated_at: new Date().toISOString()
-        });
-      }
-    } catch (err) {
-      console.error('Failed to update clinical note:', err);
-      throw err;
-    }
-  }, []);
+  const updateClinicalNoteMutation = useMutation({
+    mutationFn: async (note: ClinicalNote) => {
+      const { error } = await supabase.from('medical_logs').update({
+        ...note,
+        updated_at: new Date().toISOString()
+      }).eq('id', note.id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['medical_logs'] }),
+  });
 
-  const addMarChart = useCallback(async (chart: Omit<MARChart, 'id' | 'animal_name' | 'administered_dates' | 'status'>) => {
-    try {
-      const db = await bootCoreDatabase();
-      const animal = await db.collections.animals.findOne(chart.animal_id).exec();
-      await db.collections.mar_charts.insert({
+  const addMarChartMutation = useMutation({
+    mutationFn: async (chart: Omit<MARChart, 'id' | 'animal_name' | 'administered_dates' | 'status'>) => {
+      const { data: animal } = await supabase.from('animals').select('name').eq('id', chart.animal_id).single();
+      const { error } = await supabase.from('mar_charts').insert({
         ...chart,
         id: crypto.randomUUID(),
-        animal_name: animal?.get('name') || 'Unknown',
+        animal_name: animal?.name || 'Unknown',
         administered_dates: [],
         status: 'Active',
         is_deleted: false,
         updated_at: new Date().toISOString()
       });
-    } catch (err) {
-      console.error('Failed to add MAR chart:', err);
-      throw err;
-    }
-  }, []);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['mar_charts'] }),
+  });
 
-  const updateMarChart = useCallback(async (chart: MARChart) => {
-    try {
-      const db = await bootCoreDatabase();
-      const doc = await db.collections.mar_charts.findOne(chart.id).exec();
-      if (doc) {
-        await doc.patch({
-          ...chart,
-          updated_at: new Date().toISOString()
-        });
-      }
-    } catch (err) {
-      console.error('Failed to update MAR chart:', err);
-      throw err;
-    }
-  }, []);
+  const updateMarChartMutation = useMutation({
+    mutationFn: async (chart: MARChart) => {
+      const { error } = await supabase.from('mar_charts').update({
+        ...chart,
+        updated_at: new Date().toISOString()
+      }).eq('id', chart.id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['mar_charts'] }),
+  });
 
-  const signOffDose = useCallback(async (chartId: string, dateIso: string) => {
-    try {
-      const db = await bootCoreDatabase();
-      const doc = await db.collections.mar_charts.findOne(chartId).exec();
-      if (doc) {
-        const currentDates = doc.get('administered_dates') || [];
+  const signOffDoseMutation = useMutation({
+    mutationFn: async ({ chartId, dateIso }: { chartId: string, dateIso: string }) => {
+      const { data: chart } = await supabase.from('mar_charts').select('administered_dates').eq('id', chartId).single();
+      if (chart) {
+        const currentDates = chart.administered_dates || [];
         if (!currentDates.includes(dateIso)) {
-          await doc.patch({
+          const { error } = await supabase.from('mar_charts').update({
             administered_dates: [...currentDates, dateIso],
             updated_at: new Date().toISOString()
-          });
+          }).eq('id', chartId);
+          if (error) throw error;
         }
       }
-    } catch (err) {
-      console.error('Failed to sign off dose:', err);
-      throw err;
-    }
-  }, []);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['mar_charts'] }),
+  });
 
-  const addQuarantineRecord = useCallback(async (record: Omit<QuarantineRecord, 'id' | 'animal_name' | 'status'>) => {
-    try {
-      const db = await bootCoreDatabase();
-      const animal = await db.collections.animals.findOne(record.animal_id).exec();
-      await db.collections.quarantine_records.insert({
+  const addQuarantineRecordMutation = useMutation({
+    mutationFn: async (record: Omit<QuarantineRecord, 'id' | 'animal_name' | 'status'>) => {
+      const { data: animal } = await supabase.from('animals').select('name').eq('id', record.animal_id).single();
+      const { error } = await supabase.from('quarantine_records').insert({
         ...record,
         id: crypto.randomUUID(),
-        animal_name: animal?.get('name') || 'Unknown',
+        animal_name: animal?.name || 'Unknown',
         status: 'Active',
         is_deleted: false,
         updated_at: new Date().toISOString()
       });
-    } catch (err) {
-      console.error('Failed to add quarantine record:', err);
-      throw err;
-    }
-  }, []);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['quarantine_records'] }),
+  });
 
-  const updateQuarantineRecord = useCallback(async (record: QuarantineRecord) => {
-    try {
-      const db = await bootCoreDatabase();
-      const doc = await db.collections.quarantine_records.findOne(record.id).exec();
-      if (doc) {
-        await doc.patch({
-          ...record,
-          updated_at: new Date().toISOString()
-        });
-      }
-    } catch (err) {
-      console.error('Failed to update quarantine record:', err);
-      throw err;
-    }
-  }, []);
+  const updateQuarantineRecordMutation = useMutation({
+    mutationFn: async (record: QuarantineRecord) => {
+      const { error } = await supabase.from('quarantine_records').update({
+        ...record,
+        updated_at: new Date().toISOString()
+      }).eq('id', record.id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['quarantine_records'] }),
+  });
 
-  return { clinicalNotes, marCharts, quarantineRecords, animals, isLoading, addClinicalNote, updateClinicalNote, addMarChart, updateMarChart, signOffDose, addQuarantineRecord, updateQuarantineRecord };
+  return { 
+    clinicalNotes, 
+    marCharts, 
+    quarantineRecords, 
+    animals, 
+    isLoading, 
+    addClinicalNote: addClinicalNoteMutation.mutate, 
+    updateClinicalNote: updateClinicalNoteMutation.mutate, 
+    addMarChart: addMarChartMutation.mutate, 
+    updateMarChart: updateMarChartMutation.mutate, 
+    signOffDose: (chartId: string, dateIso: string) => signOffDoseMutation.mutate({ chartId, dateIso }), 
+    addQuarantineRecord: addQuarantineRecordMutation.mutate, 
+    updateQuarantineRecord: updateQuarantineRecordMutation.mutate 
+  };
 }
