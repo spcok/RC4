@@ -1,87 +1,89 @@
-import React, { useEffect, Suspense } from 'react';
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import ErrorBoundary from './components/ErrorBoundary';
-import Layout from './components/layout/Layout';
-import { useAuthStore } from './store/authStore';
-
-// 🛡️ Infrastructure Modules
-import { DatabaseBootProvider } from './providers/DatabaseBootProvider';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { queryClient, persister } from './lib/queryClient';
 import { AuthGuard } from './components/auth/AuthGuard';
-import { A11yProvider } from './providers/A11yProvider';
+import { Layout } from './components/layout/Layout';
+import { LoginScreen } from './features/auth/LoginScreen';
+import { DashboardContainer } from './features/dashboard/DashboardContainer';
+import { AnimalsList } from './features/animals/AnimalsList';
+import { AnimalProfile } from './features/animals/AnimalProfile';
+import { HusbandryLogs } from './features/husbandry/HusbandryLogs';
+import { MedicalRecords } from './features/medical/MedicalRecords';
+import { FlightRecords } from './features/logistics/FlightRecords';
+import { Movements } from './features/logistics/Movements';
+import { StaffRota } from './features/staff/StaffRota';
+import { Timesheets } from './features/staff/Timesheets';
+import { Holidays } from './features/staff/Holidays';
+import { ReportsDashboard } from './features/reports/ReportsDashboard';
+import { MissingRecords } from './features/compliance/MissingRecords';
+import { HelpSupport } from './features/help/HelpSupport';
+import { SettingsLayout } from './features/settings/SettingsLayout';
+import { OrgProfile } from './features/settings/tabs/OrgProfile';
+import { Directory } from './features/settings/tabs/Directory';
+import { OperationalLists } from './features/settings/tabs/OperationalLists';
+import { SystemHealth } from './features/settings/tabs/SystemHealth';
+import { AccessControl } from './features/settings/tabs/AccessControl';
+import { ZLADocuments } from './features/settings/tabs/ZLADocuments';
+import { BugReports } from './features/settings/tabs/BugReports';
+import { Intelligence } from './features/settings/tabs/Intelligence';
+import { Changelog } from './features/settings/tabs/Changelog';
+import { Migration } from './features/settings/tabs/Migration';
 
-// 📱 Main Feature Screens
-const DashboardContainer = React.lazy(() => import('./features/dashboard/DashboardContainer'));
-const WeatherView = React.lazy(() => import('./features/dashboard/WeatherView'));
-const DailyLog = React.lazy(() => import('./features/husbandry/DailyLog'));
-const DailyRounds = React.lazy(() => import('./features/husbandry/DailyRounds'));
-const Tasks = React.lazy(() => import('./features/husbandry/Tasks'));
-const FeedingSchedule = React.lazy(() => import('./features/husbandry/FeedingSchedule'));
-const MedicalRecords = React.lazy(() => import('./features/medical/MedicalRecords'));
-const Movements = React.lazy(() => import('./features/logistics/Movements'));
-const FlightRecords = React.lazy(() => import('./features/logistics/FlightRecords'));
-const SiteMaintenance = React.lazy(() => import('./features/safety/tabs/SiteMaintenance'));
-const Incidents = React.lazy(() => import('./features/safety/tabs/Incidents'));
-const FirstAid = React.lazy(() => import('./features/safety/tabs/FirstAid'));
-const SafetyDrills = React.lazy(() => import('./features/safety/tabs/SafetyDrills'));
-const Timesheets = React.lazy(() => import('./features/staff/Timesheets'));
-const Holidays = React.lazy(() => import('./features/staff/Holidays'));
-const StaffRota = React.lazy(() => import('./features/staff/StaffRota'));
-const MissingRecords = React.lazy(() => import('./features/compliance/MissingRecords'));
-const SettingsLayout = React.lazy(() => import('./features/settings/SettingsLayout'));
-const HelpSupport = React.lazy(() => import('./features/help/HelpSupport'));
-
-const ReportsDashboard = React.lazy(() => import('./features/reports/ReportsDashboard'));
-const AnimalsList = React.lazy(() => import('./features/animals/AnimalsList'));
-const AnimalProfile = React.lazy(() => import('./features/animals/AnimalProfile'));
-
-const App = () => {
-  const { initialize } = useAuthStore();
-
-  useEffect(() => {
-    initialize();
-  }, [initialize]);
-
+export default function App() {
   return (
-    <ErrorBoundary>
-      <A11yProvider>
-        <Router>
-          <DatabaseBootProvider>
-            <AuthGuard>
-              <Suspense fallback={<div className="p-8 text-center flex items-center justify-center h-full"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>}>
-                <Routes>
-                  <Route path="/" element={<Layout />}>
-                    <Route index element={<DashboardContainer />} />
-                    <Route path="weather" element={<WeatherView />} />
-                    <Route path="daily-log" element={<DailyLog />} />
-                    <Route path="daily-rounds" element={<DailyRounds />} />
-                    <Route path="tasks" element={<Tasks />} />
-                    <Route path="feeding-schedule" element={<FeedingSchedule />} />
-                    <Route path="animals" element={<AnimalsList />} />
-                    <Route path="animals/:id" element={<AnimalProfile />} />
-                    <Route path="medical" element={<MedicalRecords />} />
-                    <Route path="movements" element={<Movements />} />
-                    <Route path="flight-records" element={<FlightRecords />} />
-                    <Route path="maintenance" element={<SiteMaintenance />} />
-                    <Route path="incidents" element={<Incidents />} />
-                    <Route path="first-aid" element={<FirstAid />} />
-                    <Route path="safety-drills" element={<SafetyDrills />} />
-                    <Route path="timesheets" element={<Timesheets />} />
-                    <Route path="holidays" element={<Holidays />} />
-                    <Route path="rota" element={<StaffRota />} />
-                    <Route path="compliance" element={<MissingRecords />} />
-                    <Route path="reports" element={<ReportsDashboard />} />
-                    <Route path="settings/*" element={<SettingsLayout />} />
-                    <Route path="help" element={<HelpSupport />} />
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                  </Route>
-                </Routes>
-              </Suspense>
-          </AuthGuard>
-        </DatabaseBootProvider>
-      </Router>
-      </A11yProvider>
-    </ErrorBoundary>
-  );
-};
+    <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<LoginScreen />} />
+          <Route path="/" element={<AuthGuard><Layout /></AuthGuard>}>
+            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="dashboard" element={<DashboardContainer />} />
+            
+            <Route path="animals">
+              <Route index element={<AnimalsList />} />
+              <Route path=":id" element={<AnimalProfile />} />
+            </Route>
 
-export default App;
+            <Route path="husbandry" element={<HusbandryLogs />} />
+            <Route path="medical" element={<MedicalRecords />} />
+            
+            <Route path="logistics">
+              <Route index element={<Navigate to="flights" replace />} />
+              <Route path="flights" element={<FlightRecords />} />
+              <Route path="movements" element={<Movements />} />
+            </Route>
+
+            <Route path="staff">
+              <Route index element={<Navigate to="rota" replace />} />
+              <Route path="rota" element={<StaffRota />} />
+              <Route path="timesheets" element={<Timesheets />} />
+              <Route path="holidays" element={<Holidays />} />
+            </Route>
+
+            <Route path="reports">
+              <Route index element={<ReportsDashboard />} />
+              <Route path="compliance" element={<MissingRecords />} />
+            </Route>
+
+            <Route path="help" element={<HelpSupport />} />
+
+            <Route path="settings" element={<SettingsLayout />}>
+              <Route index element={<Navigate to="organization" replace />} />
+              <Route path="organization" element={<OrgProfile />} />
+              <Route path="directory" element={<Directory />} />
+              <Route path="lists" element={<OperationalLists />} />
+              <Route path="health" element={<SystemHealth />} />
+              <Route path="access" element={<AccessControl />} />
+              <Route path="zla" element={<ZLADocuments />} />
+              <Route path="bugs" element={<BugReports />} />
+              <Route path="intelligence" element={<Intelligence />} />
+              <Route path="changelog" element={<Changelog />} />
+              <Route path="migration" element={<Migration />} />
+            </Route>
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </PersistQueryClientProvider>
+  );
+}
