@@ -1,126 +1,50 @@
-import { useState, useMemo, useEffect } from 'react';
-import { Task, User, UserRole, Animal } from '../../types';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
-
-const mockUsers: User[] = [
-  { id: 'u1', email: 'john@example.com', name: 'John Doe', initials: 'JD', role: UserRole.VOLUNTEER },
-  { id: 'u2', email: 'jane@example.com', name: 'Jane Smith', initials: 'JS', role: UserRole.ADMIN }
-];
+import { Task } from '../../types';
 
 export const useTaskData = () => {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [animals, setAnimals] = useState<Animal[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    let isMounted = true;
+  const { data: tasks = [], isLoading } = useQuery({
+    queryKey: ['tasks'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('tasks').select('*');
+      if (error) throw error;
+      return data as Task[];
+    },
+    select: (data) => data.filter(t => !t.is_deleted)
+  });
 
-    const loadData = async () => {
-      try {
-        setIsLoading(true);
-        const [
-          { data: tasksData },
-          { data: animalsData }
-        ] = await Promise.all([
-          supabase.from('tasks').select('*'),
-          supabase.from('animals').select('*')
-        ]);
-
-        if (isMounted) {
-          setTasks((tasksData || []) as Task[]);
-          setAnimals((animalsData || []) as Animal[]);
-          setIsLoading(false);
-        }
-      } catch (err) {
-        console.error('Failed to load task data:', err);
-        if (isMounted) setIsLoading(false);
-      }
-    };
-
-    loadData();
-    return () => { isMounted = false; };
-  }, []);
-
-  const [filter, setFilter] = useState<'assigned' | 'pending' | 'completed'>('pending');
-  const [searchTerm, setSearchTerm] = useState('');
-  const currentUser = mockUsers[0];
-
-  const filteredTasks = useMemo(() => {
-    return tasks.filter(task => {
-      if (filter === 'completed' && !task.completed) return false;
-      if (filter === 'pending' && task.completed) return false;
-      if (filter === 'assigned' && (task.assigned_to !== currentUser.id || task.completed)) return false;
-
-      if (searchTerm) {
-        const searchLower = searchTerm.toLowerCase();
-        const animalName = animals.find(a => a.id === task.animal_id)?.name.toLowerCase() || '';
-        return (
-          task.title.toLowerCase().includes(searchLower) ||
-          animalName.includes(searchLower)
-        );
-      }
-      return true;
-    });
-  }, [tasks, filter, searchTerm, currentUser.id, animals]);
-
-  const addTask = async (newTask: Omit<Task, 'id'>) => {
-    try {
-      const { error } = await supabase.from('tasks').insert({
+  const addTaskMutation = useMutation({
+    mutationFn: async (newTask: Partial<Task>) => {
+      const { data, error } = await supabase.from('tasks').insert([{
         ...newTask,
-        id: crypto.randomUUID(),
+        id: newTask.id || crypto.randomUUID(),
         created_at: new Date().toISOString(),
-      });
+        is_deleted: false,
+        completed: false
+      }]).select().single();
       if (error) throw error;
-      
-      // Refresh tasks
-      const { data: tasksData } = await supabase.from('tasks').select('*');
-      if (tasksData) setTasks(tasksData as Task[]);
-    } catch (err) {
-      console.error('Failed to add task:', err);
-    }
-  };
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] })
+  });
 
-  const updateTask = async (id: string, updates: Partial<Task>) => {
-    try {
-      const { error } = await supabase.from('tasks').update(updates).eq('id', id);
+  const completeTaskMutation = useMutation({
+    mutationFn: async (taskId: string) => {
+      const { data, error } = await supabase.from('tasks')
+        .update({ completed: true })
+        .eq('id', taskId).select().single();
       if (error) throw error;
-      
-      // Refresh tasks
-      const { data: tasksData } = await supabase.from('tasks').select('*');
-      if (tasksData) setTasks(tasksData as Task[]);
-    } catch (err) {
-      console.error('Failed to update task:', err);
-    }
-  };
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] })
+  });
 
-  const deleteTask = async (id: string) => {
-    try {
-      const { error } = await supabase.from('tasks').delete().eq('id', id);
-      if (error) throw error;
-      
-      // Refresh tasks
-      const { data: tasksData } = await supabase.from('tasks').select('*');
-      if (tasksData) setTasks(tasksData as Task[]);
-    } catch (err) {
-      console.error('Failed to delete task:', err);
-    }
+  return { 
+    tasks, 
+    isLoading, 
+    addTask: addTaskMutation.mutateAsync, 
+    completeTask: completeTaskMutation.mutateAsync 
   };
-
-  const toggleTaskCompletion = async (task: Task) => {
-    try {
-      const { error } = await supabase.from('tasks').update({ 
-        completed: !task.completed,
-        completed_at: !task.completed ? new Date().toISOString() : null
-      }).eq('id', task.id);
-      if (error) throw error;
-      
-      // Refresh tasks
-      const { data: tasksData } = await supabase.from('tasks').select('*');
-      if (tasksData) setTasks(tasksData as Task[]);
-    } catch (err) {
-      console.error('Failed to toggle task completion:', err);
-    }
-  };
-
-  return { tasks: filteredTasks, animals, users: mockUsers, isLoading, filter, setFilter, searchTerm, setSearchTerm, addTask, updateTask, deleteTask, toggleTaskCompletion, currentUser };
 };

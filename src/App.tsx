@@ -1,13 +1,15 @@
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { queryClient, persister } from './lib/queryClient';
+import { useAuthStore } from './store/authStore';
 import { AuthGuard } from './components/auth/AuthGuard';
 import Layout from './components/layout/Layout';
 import LoginScreen from './features/auth/LoginScreen';
 import DashboardContainer from './features/dashboard/DashboardContainer';
 import AnimalsList from './features/animals/AnimalsList';
 import AnimalProfile from './features/animals/AnimalProfile';
-import { HusbandryLogs } from './features/husbandry/HusbandryLogs';
+import HusbandryLogs from './features/husbandry/HusbandryLogs';
 import MedicalRecords from './features/medical/MedicalRecords';
 import FlightRecords from './features/logistics/FlightRecords';
 import Movements from './features/logistics/Movements';
@@ -27,11 +29,14 @@ import ZLADocuments from './features/settings/tabs/ZLADocuments';
 import BugReports from './features/settings/tabs/BugReports';
 import Intelligence from './features/settings/tabs/Intelligence';
 import Changelog from './features/settings/tabs/Changelog';
-import Migration from './features/settings/tabs/Migration';
-
-import { Animal } from './types';
 
 export default function App() {
+  const initialize = useAuthStore(state => state.initialize);
+
+  useEffect(() => {
+    initialize();
+  }, [initialize]);
+
   return (
     <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
       <BrowserRouter>
@@ -46,7 +51,7 @@ export default function App() {
               <Route path=":id" element={<AnimalProfile />} />
             </Route>
 
-            <Route path="husbandry" element={<HusbandryLogs animalId="dummy" animal={{} as Animal} />} />
+            <Route path="husbandry" element={<HusbandryLogs />} />
             <Route path="medical" element={<MedicalRecords />} />
             
             <Route path="logistics">
@@ -80,7 +85,6 @@ export default function App() {
               <Route path="bugs" element={<BugReports />} />
               <Route path="intelligence" element={<Intelligence />} />
               <Route path="changelog" element={<Changelog />} />
-              <Route path="migration" element={<Migration />} />
             </Route>
           </Route>
         </Routes>

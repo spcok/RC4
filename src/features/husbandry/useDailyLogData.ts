@@ -1,62 +1,78 @@
-import { useCallback, useMemo, useState, useEffect } from 'react';
-import { LogEntry, LogType } from '../../types';
-import { useAnimalsData } from '../animals/useAnimalsData';
+import { useMemo, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
+import { LogEntry, LogType, AnimalCategory } from '../../types';
+import { useAnimalsData } from '../animals/useAnimalsData';
 
-export const useDailyLogData = (viewDate: string, activeCategory: string, animalId?: string) => {
+export const useDailyLogData = (_viewDate: string, activeCategory: AnimalCategory | 'all' | string) => {
+  const queryClient = useQueryClient();
   const { animals, isLoading: animalsLoading } = useAnimalsData();
-  const [allLogs, setAllLogs] = useState<LogEntry[]>([]);
-  const [isLogsLoading, setIsLogsLoading] = useState(true);
 
-  useEffect(() => {
-    let isMounted = true;
+  // 1. FETCH LOGS
+  const { data: logs = [], isLoading: logsLoading } = useQuery({
+    queryKey: ['daily_logs'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('daily_logs').select('*');
+      if (error) throw error;
+      return data as LogEntry[];
+    },
+    select: (data) => data.filter(log => !log.is_deleted)
+  });
 
-    const loadLogs = async () => {
-      try {
-        // Online Primary
-        const { data, error } = await supabase.from('daily_logs').select('*');
-        
-        if (error) throw error;
+  // 2. OPTIMISTIC MUTATION
+  const addLogMutation = useMutation({
+    mutationFn: async (newLog: Partial<LogEntry>) => {
+      const { data, error } = await supabase.from('daily_logs').insert([newLog]).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onMutate: async (newLog) => {
+      // Cancel any outgoing refetches so they don't overwrite our optimistic update
+      await queryClient.cancelQueries({ queryKey: ['daily_logs'] });
 
-        if (data && isMounted) {
-          // JS Filtering
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const activeLogs = data.filter((log: any) => !log.is_deleted);
-          setAllLogs(activeLogs);
-          setIsLogsLoading(false);
-        }
-      } catch (err) {
-        console.error("Supabase fetch failed:", err);
-        if (isMounted) setIsLogsLoading(false);
+      // Snapshot the previous value
+      const previousLogs = queryClient.getQueryData<LogEntry[]>(['daily_logs']);
+
+      const optimisticLog = { ...newLog, id: newLog.id || crypto.randomUUID() } as LogEntry;
+
+      // Optimistically update to the new value instantly
+      if (previousLogs) {
+        queryClient.setQueryData<LogEntry[]>(['daily_logs'], [...previousLogs, optimisticLog]);
+      } else {
+        queryClient.setQueryData<LogEntry[]>(['daily_logs'], [optimisticLog]);
       }
-    };
 
-    loadLogs();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [viewDate, animalId]);
-
-  const logs = useMemo(() => allLogs, [allLogs]);
+      // Return a context object with the snapshotted value
+      return { previousLogs };
+    },
+    // If the mutation fails, use the context returned from onMutate to roll back
+    onError: (err, _newLog, context) => {
+      console.error("Mutation failed, rolling back cache", err);
+      if (context?.previousLogs) {
+        queryClient.setQueryData(['daily_logs'], context.previousLogs);
+      }
+    },
+    // Always refetch after error or success to ensure server sync
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['daily_logs'] });
+    },
+  });
 
   const getTodayLog = useCallback((animalId: string, type: LogType) => {
     return logs.find(log => log.animal_id === animalId && log.log_type === type);
   }, [logs]);
 
   const addLogEntry = useCallback(async (entry: Partial<LogEntry>) => {
-    try {
-      const { error } = await supabase.from('daily_logs').insert({
-        id: crypto.randomUUID(),
-        created_at: new Date().toISOString(),
-        is_deleted: false,
-        ...entry
-      });
-      if (error) throw error;
-    } catch (err) {
-      console.error('Failed to add log entry:', err);
-    }
-  }, []);
+    const newEntry: Partial<LogEntry> = {
+      id: crypto.randomUUID(),
+      created_at: new Date().toISOString(),
+      is_deleted: false,
+      ...entry
+    };
+    
+    // Fire the optimistic mutation
+    await addLogMutation.mutateAsync(newEntry);
+  }, [addLogMutation]);
 
   const filteredAnimals = useMemo(() => {
     return animals.filter(a => activeCategory === 'all' || a.category === activeCategory);
@@ -67,6 +83,7 @@ export const useDailyLogData = (viewDate: string, activeCategory: string, animal
     getTodayLog, 
     addLogEntry, 
     dailyLogs: logs, 
-    isLoading: animalsLoading || isLogsLoading 
+    isLoading: animalsLoading || logsLoading,
+    isOffline: false // Tanstack persists the cache implicitly
   };
 };

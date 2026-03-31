@@ -8,7 +8,7 @@ import { usePermissions } from '../../hooks/usePermissions';
 
 export default function Movements() {
   const { view_movements } = usePermissions();
-  const { movements } = useMovementsData();
+  const { movements, isLoading } = useMovementsData();
   const { transfers } = useTransfersData();
   const [activeTab, setActiveTab] = useState<'internal' | 'external'>('internal');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -23,6 +23,10 @@ export default function Movements() {
         </div>
       </div>
     );
+  }
+
+  if (isLoading) {
+    return <div className="p-8 text-center text-slate-500">Loading movements...</div>;
   }
 
   return (

@@ -1,22 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { Loader2, ShieldCheck, Mail, Lock, Bird } from 'lucide-react';
 import { motion } from 'motion/react';
 
 const LoginScreen: React.FC = () => {
-  const { login, isLoading } = useAuthStore();
+  const { login, isLoading, currentUser } = useAuthStore();
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
+
+  // Auto-redirect if they hit the /login URL but are already authenticated
+  useEffect(() => {
+    if (currentUser) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [currentUser, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLocalError(null);
     try {
-      // The store handles the entire Online/Offline 3-Tier fallback logic
       await login(email, password);
-      // Note: No navigation needed! AuthGuard will instantly unmount this 
-      // component and reveal the Dashboard the millisecond currentUser is set.
+      // Explicitly push the router to the dashboard upon success
+      navigate('/dashboard', { replace: true });
     } catch (err: unknown) {
       setLocalError(err instanceof Error ? err.message : 'Authentication failed. Please check your credentials.');
     }

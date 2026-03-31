@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useMedicalData } from './useMedicalData';
+import { useAnimalsData } from '../animals/useAnimalsData';
 import { usePermissions } from '../../hooks/usePermissions';
 import { Pill, ClipboardList, AlertTriangle, Plus, Edit2, Download, CheckCircle, Lock, FileText, Printer } from 'lucide-react';
 import { AddClinicalNoteModal } from './AddClinicalNoteModal';
@@ -15,7 +16,8 @@ interface MedicalRecordsProps {
 
 const MedicalRecords: React.FC<MedicalRecordsProps> = ({ animalId, variant = 'full' }) => {
   const permissions = usePermissions();
-  const { clinicalNotes, marCharts, quarantineRecords, animals, isLoading, addClinicalNote, updateClinicalNote, addMarChart, addQuarantineRecord, updateQuarantineRecord } = useMedicalData();
+  const { clinicalNotes, marCharts, quarantineRecords, isLoading, addClinicalNote, updateClinicalNote, addMarChart, addQuarantineRecord, updateQuarantineRecord } = useMedicalData();
+  const { animals } = useAnimalsData();
   const [activeTab, setActiveTab] = useState<'notes' | 'mar' | 'quarantine'>(variant === 'quick-view' ? 'notes' : 'notes');
   const [selectedPatient, setSelectedPatient] = useState<string>(animalId || 'All');
   const [selectedNote, setSelectedNote] = useState<ClinicalNote | null>(null);

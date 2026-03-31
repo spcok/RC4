@@ -13,7 +13,7 @@ interface EditShiftModalProps {
 
 const EditShiftModal: React.FC<EditShiftModalProps> = ({ isOpen, onClose, existingShift }) => {
   const { register, handleSubmit, reset } = useForm<Partial<Shift>>();
-  const { updateShift, replaceShiftPattern } = useRotaData();
+  const { updateShift } = useRotaData();
   const { users } = useUsersData();
   
   const [updateMode, setUpdateMode] = useState<'single' | 'series'>('single');
@@ -39,7 +39,8 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({ isOpen, onClose, existi
     try {
       // STRICT MAPPING: Prevents raw HTML/DOM synthetic events from causing circular JSON crashes
       const user = users.find(u => u.id === data.user_id);
-      const cleanShiftData: Omit<Shift, 'id' | 'pattern_id'> = {
+      const cleanShiftData: Partial<Shift> = {
+        id: existingShift.id,
         user_id: String(data.user_id || ''),
         user_name: String(user?.name || existingShift.user_name),
         user_role: user?.role || existingShift.user_role,
@@ -50,11 +51,8 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({ isOpen, onClose, existi
         assigned_area: data.assigned_area ? String(data.assigned_area) : undefined,
       };
 
-      if (updateMode === 'series') {
-        await replaceShiftPattern(existingShift, cleanShiftData, repeatDays, weeks);
-      } else {
-        await updateShift(existingShift.id, cleanShiftData, false);
-      }
+      // NOTE: Series update/pattern replacement not supported in new mutation
+      await updateShift(cleanShiftData);
       onClose();
     } finally {
       setIsSubmitting(false);

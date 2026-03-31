@@ -2,7 +2,7 @@ import React, { useEffect, Suspense } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { 
   ShieldCheck, Users, FileText, Brain, 
-  Database, List, Building, Bug,
+  List, Building, Bug,
   History, Activity
 } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -11,14 +11,13 @@ const AccessControl = React.lazy(() => import('./tabs/AccessControl'));
 const Directory = React.lazy(() => import('./tabs/Directory'));
 const ZLADocuments = React.lazy(() => import('./tabs/ZLADocuments'));
 const Intelligence = React.lazy(() => import('./tabs/Intelligence'));
-const Migration = React.lazy(() => import('./tabs/Migration'));
 const OperationalLists = React.lazy(() => import('./tabs/OperationalLists'));
 const OrgProfile = React.lazy(() => import('./tabs/OrgProfile'));
 const SystemHealth = React.lazy(() => import('./tabs/SystemHealth'));
 const BugReports = React.lazy(() => import('./tabs/BugReports'));
 const Changelog = React.lazy(() => import('./tabs/Changelog'));
 
-type TabType = 'access' | 'directory' | 'zla' | 'intelligence' | 'migration' | 'lists' | 'org' | 'health' | 'bugs' | 'changelog';
+type TabType = 'access' | 'directory' | 'zla' | 'intelligence' | 'lists' | 'org' | 'health' | 'bugs' | 'changelog';
 
 const SettingsLayout: React.FC = () => {
   const { tab } = useParams<{ tab: string }>();
@@ -32,7 +31,6 @@ const SettingsLayout: React.FC = () => {
     { id: 'directory', label: 'Directory', icon: Users, permission: 'manage_users' },
     { id: 'zla', label: 'ZLA Documents', icon: FileText, permission: 'manage_zla_documents' },
     { id: 'intelligence', label: 'Intelligence', icon: Brain, permission: 'view_settings' },
-    { id: 'migration', label: 'Migration', icon: Database, permission: 'view_settings' },
     { id: 'lists', label: 'Operational Lists', icon: List, permission: 'view_settings' },
     { id: 'org', label: 'Organisation Profile', icon: Building, permission: 'view_settings' },
     { id: 'health', label: 'System Health', icon: Activity, permission: 'view_settings' },
@@ -55,7 +53,6 @@ const SettingsLayout: React.FC = () => {
       case 'directory': return <Directory />;
       case 'zla': return <ZLADocuments />;
       case 'intelligence': return <Intelligence />;
-      case 'migration': return <Migration />;
       case 'lists': return <OperationalLists />;
       case 'org': return <OrgProfile />;
       case 'health': return <SystemHealth />;

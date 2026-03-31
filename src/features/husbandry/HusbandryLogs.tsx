@@ -7,15 +7,14 @@ import { formatWeightDisplay, parseLegacyWeightToGrams } from '../../services/we
 import { useDailyLogData } from './useDailyLogData'; 
 
 interface Props {
-  animalId: string;
   animal: Animal; 
 }
 
 const validHusbandryTypes = ['FEED', 'WEIGHT', 'FLIGHT', 'TRAINING', 'TEMPERATURE'];
 
-export const HusbandryLogs: React.FC<Props> = ({ animalId, animal }) => {
+export const HusbandryLogs: React.FC<Props> = ({ animal }) => {
   // 🚨 CRITICAL FIX: Single Source of Truth
-  const { dailyLogs: logs, isLoading: loading } = useDailyLogData('', 'all', animalId);
+  const { dailyLogs: logs, isLoading: loading } = useDailyLogData('', 'all');
   
   const [filter, setFilter] = useState('ALL');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);

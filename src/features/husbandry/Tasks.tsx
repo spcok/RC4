@@ -6,16 +6,22 @@ import {
 } from 'lucide-react';
 import AddEntryModal from './AddEntryModal';
 import { useTaskData } from './useTaskData';
+import { useAnimalsData } from '../animals/useAnimalsData';
+import { useUsersData } from '../settings/useUsersData';
+import { useAuthStore } from '../../store/authStore';
 
 import { usePermissions } from '../../hooks/usePermissions';
 import { Lock } from 'lucide-react';
 
 const Tasks: React.FC = () => {
   const { view_tasks } = usePermissions();
-  const { 
-    tasks, animals, users, isLoading, filter, setFilter, 
-    searchTerm, setSearchTerm, addTask, toggleTaskCompletion, currentUser 
-  } = useTaskData();
+  const { tasks, isLoading, addTask, completeTask } = useTaskData();
+  const { animals } = useAnimalsData();
+  const { users } = useUsersData();
+  const { currentUser } = useAuthStore();
+  
+  const [filter, setFilter] = useState<'assigned' | 'pending' | 'completed'>('pending');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedAnimalForEntry, setSelectedAnimalForEntry] = useState<Animal | null>(null);
@@ -28,6 +34,10 @@ const Tasks: React.FC = () => {
   const [newAnimalId, setNewAnimalId] = useState('');
   const [newDueDate, setNewDueDate] = useState(new Date().toISOString().split('T')[0]);
   const [newAssignedTo, setNewAssignedTo] = useState(currentUser?.id || '');
+
+  const toggleTaskCompletion = (task: Task) => {
+    completeTask(task.id);
+  };
 
   if (!view_tasks) {
     return (

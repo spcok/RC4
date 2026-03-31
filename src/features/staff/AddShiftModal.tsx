@@ -12,7 +12,7 @@ interface AddShiftModalProps {
 
 const AddShiftModal: React.FC<AddShiftModalProps> = ({ isOpen, onClose }) => {
   const { register, handleSubmit } = useForm<Omit<Shift, 'id' | 'pattern_id' | 'user_name' | 'user_role'>>();
-  const { createShift } = useRotaData();
+  const { addShift } = useRotaData();
   const { users } = useUsersData();
   const [repeat, setRepeat] = useState(false);
   const [repeatDays, setRepeatDays] = useState<number[]>([]);
@@ -38,7 +38,8 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({ isOpen, onClose }) => {
         user_role: String(user?.role || 'Unknown')
       };
 
-      await createShift(cleanShiftData, repeat ? repeatDays : [], repeat ? weeks : 1);
+      // NOTE: Repeating shifts not supported in new mutation
+      await addShift(cleanShiftData);
       onClose();
     } finally {
       setIsSubmitting(false);
