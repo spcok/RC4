@@ -27,7 +27,7 @@ const NAVIGATION_GROUPS = [
   {
     title: 'Husbandry',
     items: [
-      { name: 'Daily Log', path: '/husbandry', icon: ClipboardList, permKey: 'view_daily_logs' },
+      { name: 'Daily Log', path: '/husbandry-logs', icon: ClipboardList, permKey: 'view_daily_logs' },
       { name: 'Daily Rounds', path: '/daily-rounds', icon: CheckSquare, permKey: 'view_daily_rounds' },
       { name: 'Tasks', path: '/tasks', icon: CheckSquare, permKey: 'view_tasks' },
       { name: 'Feeding Schedule', path: '/feeding-schedule', icon: CalendarDays, permKey: null },

@@ -1,67 +1,84 @@
-import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '../../lib/supabase';
 import { Timesheet } from '../../types';
 
 export function useTimesheetData() {
-  const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    let isMounted = true;
-    
+  const { data: timesheets = [], isLoading } = useQuery({
+    queryKey: ['timesheets'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('timesheets')
+        .select('*')
+        .eq('is_deleted', false);
+      if (error) throw error;
+      return data as Timesheet[];
+    },
+  });
 
-    const loadData = async () => {
-      try {
-        console.log("☢️ [Zero Dawn] Timesheet data loading is neutralized.");
-        if (isMounted) {
-          setTimesheets([]);
-          setIsLoading(false);
-        }
-      } catch (err) {
-        console.error('Failed to load timesheet data:', err);
-        if (isMounted) setIsLoading(false);
-      }
-    };
+  const clockInMutation = useMutation({
+    mutationFn: async (staff_name: string) => {
+      const { data, error } = await supabase
+        .from('timesheets')
+        .insert([{ 
+          staff_name, 
+          date: new Date().toISOString().split('T')[0],
+          clock_in: new Date().toISOString(), 
+          status: 'Active',
+          is_deleted: false
+        }])
+        .select();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['timesheets'] }),
+  });
 
-    loadData();
+  const clockOutMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase
+        .from('timesheets')
+        .update({ clock_out: new Date().toISOString(), status: 'Completed' })
+        .eq('id', id)
+        .select();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['timesheets'] }),
+  });
 
-    return () => {
-      isMounted = false;
-      // if (sub) sub.unsubscribe();
-    };
-  }, []);
+  const addTimesheetMutation = useMutation({
+    mutationFn: async (timesheet: Omit<Timesheet, 'id'>) => {
+      const { data, error } = await supabase
+        .from('timesheets')
+        .insert([timesheet])
+        .select();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['timesheets'] }),
+  });
 
-  const clockIn = async (staff_name: string) => {
-    console.log("☢️ [Zero Dawn] Clock in is neutralized.", staff_name);
-    alert("Database engine is neutralized. Clock in cannot proceed.");
-  };
-
-  const clockOut = async (id: string) => {
-    console.log("☢️ [Zero Dawn] Clock out is neutralized.", id);
-    alert("Database engine is neutralized. Clock out cannot proceed.");
-  };
-
-  const getCurrentlyClockedInStaff = async () => {
-    console.log("☢️ [Zero Dawn] Get currently clocked in staff is neutralized.");
-    return [];
-  };
-
-  const addTimesheet = async (timesheet: Omit<Timesheet, 'id'>) => {
-    console.log("☢️ [Zero Dawn] Add timesheet is neutralized.", timesheet);
-    alert("Database engine is neutralized. Timesheet cannot be added.");
-  };
-
-  const deleteTimesheet = async (id: string) => {
-    console.log("☢️ [Zero Dawn] Delete timesheet is neutralized.", id);
-    alert("Database engine is neutralized. Timesheet cannot be deleted.");
-  };
+  const deleteTimesheetMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase
+        .from('timesheets')
+        .update({ is_deleted: true })
+        .eq('id', id)
+        .select();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['timesheets'] }),
+  });
 
   return {
     timesheets,
     isLoading,
-    clockIn,
-    clockOut,
-    getCurrentlyClockedInStaff,
-    addTimesheet,
-    deleteTimesheet
+    clockIn: clockInMutation.mutateAsync,
+    clockOut: clockOutMutation.mutateAsync,
+    addTimesheet: addTimesheetMutation.mutateAsync,
+    deleteTimesheet: deleteTimesheetMutation.mutateAsync,
   };
 }

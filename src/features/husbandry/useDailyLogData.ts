@@ -10,9 +10,14 @@ export const useDailyLogData = (_viewDate: string, activeCategory: AnimalCategor
 
   // 1. FETCH LOGS
   const { data: logs = [], isLoading: logsLoading } = useQuery({
-    queryKey: ['daily_logs'],
+    queryKey: ['daily_logs', _viewDate],
     queryFn: async () => {
-      const { data, error } = await supabase.from('daily_logs').select('*');
+      let query = supabase.from('daily_logs').select('*');
+      if (_viewDate === 'today') {
+        const today = new Date().toISOString().split('T')[0];
+        query = query.eq('log_date', today);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return data as LogEntry[];
     },

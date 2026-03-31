@@ -86,12 +86,11 @@ const animalProfileRoute = createRoute({
 
 const husbandryRoute = createRoute({
   getParentRoute: () => authRoute,
-  path: '/husbandry',
 });
 
 const husbandryIndexRoute = createRoute({
   getParentRoute: () => husbandryRoute,
-  path: '/',
+  path: '/husbandry-logs',
   component: HusbandryLogs,
 });
 
@@ -200,7 +199,6 @@ const helpRoute = createRoute({
 
 const safetyRoute = createRoute({
   getParentRoute: () => authRoute,
-  path: '/safety',
 });
 
 const safetyMaintenanceRoute = createRoute({

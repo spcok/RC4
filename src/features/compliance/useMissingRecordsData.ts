@@ -1,4 +1,6 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '../../lib/supabase';
 import { LogType, Animal, LogEntry, ClinicalNote } from '../../types';
 
 export interface MissingRecordAlert {
@@ -31,37 +33,34 @@ export interface ComplianceStats {
 }
 
 export function useMissingRecordsData() {
-  const [animals, setAnimals] = useState<Animal[]>([]);
-  const [dailyLogs, setDailyLogs] = useState<LogEntry[]>([]);
-  const [medicalLogs, setMedicalLogs] = useState<ClinicalNote[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: animals = [], isLoading: isLoadingAnimals } = useQuery({
+    queryKey: ['animals'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('animals').select('*').eq('is_deleted', false);
+      if (error) throw error;
+      return data as Animal[];
+    },
+  });
 
-  useEffect(() => {
-    let isMounted = true;
-    const subs: { unsubscribe: () => void }[] = [];
+  const { data: dailyLogs = [], isLoading: isLoadingDailyLogs } = useQuery({
+    queryKey: ['log_entries'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('log_entries').select('*').eq('is_deleted', false);
+      if (error) throw error;
+      return data as LogEntry[];
+    },
+  });
 
-    const loadData = async () => {
-      try {
-        console.log("☢️ [Zero Dawn] Missing records data loading is neutralized.");
-        if (isMounted) {
-          setAnimals([]);
-          setDailyLogs([]);
-          setMedicalLogs([]);
-          setIsLoading(false);
-        }
-      } catch (err) {
-        console.error('Failed to load missing records data:', err);
-        if (isMounted) setIsLoading(false);
-      }
-    };
+  const { data: medicalLogs = [], isLoading: isLoadingMedicalLogs } = useQuery({
+    queryKey: ['clinical_notes'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('clinical_notes').select('*').eq('is_deleted', false);
+      if (error) throw error;
+      return data as ClinicalNote[];
+    },
+  });
 
-    loadData();
-
-    return () => {
-      isMounted = false;
-      subs.forEach(s => s.unsubscribe());
-    };
-  }, []);
+  const isLoading = isLoadingAnimals || isLoadingDailyLogs || isLoadingMedicalLogs;
 
   const { alerts, complianceStats, categoryCompliance } = useMemo(() => {
     if (!animals.length) return { alerts: [], complianceStats: [], categoryCompliance: {} };

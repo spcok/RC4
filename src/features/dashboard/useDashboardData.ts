@@ -46,6 +46,17 @@ export function useDashboardData(activeTab: AnimalCategory | 'ARCHIVED') {
     }
   });
 
+  // 2b. Fetch Today's Logs
+  const { data: todayLogs = [], isLoading: todayLogsLoading } = useQuery({
+    queryKey: ['daily_logs_today'],
+    queryFn: async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await supabase.from('daily_logs').select('*').eq('log_date', today);
+      if (error) throw error;
+      return data as LogEntry[];
+    }
+  });
+
   // 3. Fetch Tasks
   const { data: rawTasks = [], isLoading: tasksLoading } = useQuery({
     queryKey: ['tasks'],
@@ -56,13 +67,14 @@ export function useDashboardData(activeTab: AnimalCategory | 'ARCHIVED') {
     }
   });
 
-  const isLoading = animalsLoading || logsLoading || tasksLoading;
+  const isLoading = animalsLoading || logsLoading || tasksLoading || todayLogsLoading;
 
   // Filter base datasets
   const liveAnimals = useMemo(() => rawAnimals.filter(a => !a.is_deleted && !a.archived), [rawAnimals]);
   const archivedAnimals = useMemo(() => rawAnimals.filter(a => !a.is_deleted && a.archived), [rawAnimals]);
   const logs = useMemo(() => rawLogs.filter(l => !l.is_deleted), [rawLogs]);
   const tasks = useMemo(() => rawTasks.filter(t => !t.is_deleted), [rawTasks]);
+  const todayLogsFiltered = useMemo(() => todayLogs.filter(l => !l.is_deleted), [todayLogs]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOption, setSortOption] = useState('alpha-asc');
@@ -76,13 +88,13 @@ export function useDashboardData(activeTab: AnimalCategory | 'ARCHIVED') {
     }
     
     const filteredIds = new Set(filtered.map(a => a.id));
-    const todayLogs = logs.filter(l => filteredIds.has(l.animal_id));
+    const todayLogs = todayLogsFiltered.filter(l => filteredIds.has(l.animal_id));
     
     const weighed = todayLogs.filter(l => l.log_type === LogType.WEIGHT).length;
     const fed = todayLogs.filter(l => l.log_type === LogType.FEED).length;
 
     return { total: filtered.length, weighed, fed, animalData: new Map<string, AnimalStatsData>() };
-  }, [liveAnimals, activeTab, logs]);
+  }, [liveAnimals, activeTab, todayLogsFiltered]);
 
   // Compute Task Stats
   const taskStats = useMemo(() => {

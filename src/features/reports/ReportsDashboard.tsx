@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '../../lib/supabase';
 import { 
   CalendarDays, 
   ListOrdered, 
@@ -146,36 +148,16 @@ export default function ReportsDashboard() {
   const [selectedSection, setSelectedSection] = useState<string>('');
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('landscape');
   const [rotaPeriod, setRotaPeriod] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
-  const [animals, setAnimals] = useState<Animal[]>([]);
-  const [archivedAnimals, setArchivedAnimals] = useState<Animal[]>([]);
+  const { data: animals = [] } = useQuery({
+    queryKey: ['animals'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('animals').select('*');
+      if (error) throw error;
+      return data as Animal[];
+    },
+  });
 
-  useEffect(() => {
-    let isMounted = true;
-    
-    
-    
-
-    const loadData = async () => {
-      try {
-        console.log("☢️ [Zero Dawn] Reports dashboard data loading is neutralized.");
-        if (isMounted) {
-          setAnimals([]);
-          setArchivedAnimals([]);
-        }
-      } catch (err) {
-        console.error('Failed to load dashboard data:', err);
-      }
-    };
-
-    loadData();
-
-    return () => {
-      isMounted = false;
-      // if (animalsSub) animalsSub.unsubscribe();
-      // if (archivedSub) archivedSub.unsubscribe();
-      // if (shiftsSub) shiftsSub.unsubscribe();
-    };
-  }, []);
+  const archivedAnimals = animals.filter(a => a.archived);
 
   // Auto-calculate End Date based on the selected Rota Period
   useEffect(() => {
@@ -215,8 +197,6 @@ export default function ReportsDashboard() {
     setError(null);
 
     try {
-      console.log("☢️ [Zero Dawn] Report generation is neutralized.");
-      alert("Database engine is neutralized. Reports cannot be generated.");
       // ... handle other reports ...
     } catch (err: unknown) {
       console.error("Failed to generate preview:", err);

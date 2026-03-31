@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { usePermissions } from '../../../hooks/usePermissions';
 import { useSafetyDrillData } from '../useSafetyDrillData';
 import { useTimesheetData } from '../../staff/useTimesheetData';
@@ -10,12 +10,13 @@ import { LiveAttendanceRegister } from '../components/LiveAttendanceRegister';
 const SafetyDrills: React.FC = () => {
   const { view_safety_drills } = usePermissions();
   const { drills, isLoading, addDrillLog, deleteDrillLog } = useSafetyDrillData();
-  const { getCurrentlyClockedInStaff } = useTimesheetData();
-  const [currentlyClockedIn, setCurrentlyClockedIn] = useState<string[]>([]);
-
-  useEffect(() => {
-    getCurrentlyClockedInStaff().then(setCurrentlyClockedIn);
-  }, [getCurrentlyClockedInStaff]);
+  const { timesheets } = useTimesheetData();
+  
+  const currentlyClockedIn = useMemo(() => {
+    return timesheets
+      .filter(t => t.status === 'Active')
+      .map(t => t.staff_name);
+  }, [timesheets]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewingDrill, setViewingDrill] = useState<SafetyDrill | null>(null);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { IncidentType, IncidentSeverity } from '../../../types';
 import { usePermissions } from '../../../hooks/usePermissions';
 import { useIncidentData } from '../useIncidentData';
@@ -18,13 +18,14 @@ const Incidents: React.FC = () => {
     addIncident, 
     deleteIncident 
   } = useIncidentData();
-  const { getCurrentlyClockedInStaff } = useTimesheetData();
-  const [currentlyClockedIn, setCurrentlyClockedIn] = useState<string[]>([]);
+  const { timesheets } = useTimesheetData();
+  
+  const currentlyClockedIn = React.useMemo(() => {
+    return timesheets
+      .filter(t => t.status === 'Active')
+      .map(t => t.staff_name);
+  }, [timesheets]);
   const [attendance, setAttendance] = useState<Record<string, boolean>>({});
-
-  useEffect(() => {
-    getCurrentlyClockedInStaff().then(setCurrentlyClockedIn);
-  }, [getCurrentlyClockedInStaff]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 

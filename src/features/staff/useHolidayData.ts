@@ -1,49 +1,51 @@
-import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '../../lib/supabase';
 import { Holiday } from '../../types';
 
 export function useHolidayData() {
-  const [holidays, setHolidays] = useState<Holiday[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    let isMounted = true;
-    
+  const { data: holidays = [], isLoading } = useQuery({
+    queryKey: ['holidays'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('holidays')
+        .select('*')
+        .eq('is_deleted', false);
+      if (error) throw error;
+      return data as Holiday[];
+    },
+  });
 
-    const loadData = async () => {
-      try {
-        console.log("☢️ [Zero Dawn] Holiday data loading is neutralized.");
-        if (isMounted) {
-          setHolidays([]);
-          setIsLoading(false);
-        }
-      } catch (err) {
-        console.error('Failed to load holiday data:', err);
-        if (isMounted) setIsLoading(false);
-      }
-    };
+  const addHolidayMutation = useMutation({
+    mutationFn: async (holiday: Omit<Holiday, 'id'>) => {
+      const { data, error } = await supabase
+        .from('holidays')
+        .insert([holiday])
+        .select();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['holidays'] }),
+  });
 
-    loadData();
-
-    return () => {
-      isMounted = false;
-      // if (sub) sub.unsubscribe();
-    };
-  }, []);
-
-  const addHoliday = async (holiday: Omit<Holiday, 'id'>) => {
-    console.log("☢️ [Zero Dawn] Add holiday is neutralized.", holiday);
-    alert("Database engine is neutralized. Holiday cannot be added.");
-  };
-
-  const deleteHoliday = async (id: string) => {
-    console.log("☢️ [Zero Dawn] Delete holiday is neutralized.", id);
-    alert("Database engine is neutralized. Holiday cannot be deleted.");
-  };
+  const deleteHolidayMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase
+        .from('holidays')
+        .update({ is_deleted: true })
+        .eq('id', id)
+        .select();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['holidays'] }),
+  });
 
   return {
     holidays,
     isLoading,
-    addHoliday,
-    deleteHoliday
+    addHoliday: addHolidayMutation.mutateAsync,
+    deleteHoliday: deleteHolidayMutation.mutateAsync,
   };
 }

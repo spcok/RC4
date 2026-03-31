@@ -16,7 +16,7 @@ const validHusbandryTypes = ['FEED', 'WEIGHT', 'FLIGHT', 'TRAINING', 'TEMPERATUR
 const columnHelper = createColumnHelper<LogEntry>();
 
 const HusbandryLogs: React.FC<Props> = ({ animal }) => {
-  const { dailyLogs: logs, isLoading: loading } = useDailyLogData('', 'all');
+  const { dailyLogs: logs, isLoading: loading } = useDailyLogData('today', 'all');
   
   const [filter, setFilter] = useState('ALL');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -78,7 +78,7 @@ const HusbandryLogs: React.FC<Props> = ({ animal }) => {
     return log.value || log.notes || '—';
   }, [animal?.weight_unit]);
 
-  const getTypeColor = useCallback((type: string) => {
+  const getTypeColor = (type: string) => {
     const safeType = type?.toUpperCase();
     switch (safeType) {
       case 'FEED': return 'bg-emerald-100 text-emerald-800';
@@ -88,9 +88,9 @@ const HusbandryLogs: React.FC<Props> = ({ animal }) => {
       case 'TEMPERATURE': return 'bg-rose-100 text-rose-800';
       default: return 'bg-slate-100 text-slate-800';
     }
-  }, []);
+  };
 
-  const columns = useMemo(() => [
+  const columns: ColumnDef<LogEntry, any>[] = useMemo(() => [
     columnHelper.accessor(row => row.log_date || row.created_at, {
       id: 'date',
       header: 'Date',
@@ -113,34 +113,38 @@ const HusbandryLogs: React.FC<Props> = ({ animal }) => {
     columnHelper.accessor(row => row, {
       id: 'value',
       header: 'Value',
-      cell: info => <span className="font-bold text-slate-900">{renderLogValue(info.getValue())}</span>
+      cell: info => {
+        const log = info.getValue();
+        const displayValue = renderLogValue(log);
+        return <span className="font-bold text-slate-900">{displayValue}</span>;
+      }
     }),
-    columnHelper.accessor('user_initials', {
-      header: 'Initials / Actions',
+    columnHelper.accessor('id', {
+      id: 'actions',
+      header: 'Actions',
       cell: info => {
         const log = info.row.original;
         return (
-          <div className="flex items-center gap-2 text-slate-500 font-bold uppercase text-xs">
-            {info.getValue() || '—'}
+          <div className="flex items-center gap-2">
             <button 
               onClick={() => { setSelectedLog(log); setIsAddModalOpen(true); }} 
               className="text-blue-600 hover:text-blue-800 p-1"
               title="Edit Log"
             >
-              <Edit2 size={14} />
+              <Edit2 size={16} />
             </button>
             <button 
               onClick={() => handleDeleteLog(log.id!)} 
               className="text-red-600 hover:text-red-800 p-1"
               title="Delete Log"
             >
-              <Trash2 size={14} />
+              <Trash2 size={16} />
             </button>
           </div>
         );
       }
     })
-  ] as unknown as ColumnDef<LogEntry, unknown>[], [getTypeColor, renderLogValue]);
+  ], [animal?.weight_unit, renderLogValue]);
 
   return (
     <div className="space-y-4 relative">
