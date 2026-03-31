@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useLayoutContext } from '../../components/layout/Layout';
 import { Animal, AnimalCategory } from '../../types';
 import { 
     ClipboardCheck, Sun, Moon, Check, X, Droplets, Lock, 
@@ -16,7 +16,7 @@ import { usePermissions } from '../../hooks/usePermissions';
 
 const DailyRounds: React.FC<DailyRoundsProps> = () => {
     const { view_daily_rounds } = usePermissions();
-    const { isSidebarCollapsed } = useOutletContext<{ isSidebarCollapsed: boolean }>();
+    const { isSidebarCollapsed } = useLayoutContext();
     const [viewDate, setViewDate] = useState(new Date().toISOString().split('T')[0]);
     
     const handlePrevDay = () => {

@@ -7,7 +7,7 @@ export function useIntelligenceData() {
 
   useEffect(() => {
     let isMounted = true;
-    const sub: { unsubscribe: () => void } | null = null;
+    
 
     const loadAnimals = async () => {
       try {
@@ -26,7 +26,7 @@ export function useIntelligenceData() {
 
     return () => {
       isMounted = false;
-      if (sub) sub.unsubscribe();
+      // if (sub) sub.unsubscribe();
     };
   }, []);
 

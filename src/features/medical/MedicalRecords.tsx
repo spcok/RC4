@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useMedicalData } from './useMedicalData';
 import { useAnimalsData } from '../animals/useAnimalsData';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -7,12 +7,17 @@ import { AddClinicalNoteModal } from './AddClinicalNoteModal';
 import { AddMarChartModal } from './AddMarChartModal';
 import { AddQuarantineModal } from './AddQuarantineModal';
 import { generateMarChartDocx } from './exportMarChart';
-import { ClinicalNote } from '../../types';
+import { ClinicalNote, MARChart, QuarantineRecord } from '../../types';
+import { DataTable } from '../../components/ui/DataTable';
+import { createColumnHelper, ColumnDef } from '@tanstack/react-table';
 
 interface MedicalRecordsProps {
   animalId?: string;
   variant?: 'full' | 'quick-view';
 }
+
+const marColumnHelper = createColumnHelper<MARChart>();
+const quarantineColumnHelper = createColumnHelper<QuarantineRecord>();
 
 const MedicalRecords: React.FC<MedicalRecordsProps> = ({ animalId, variant = 'full' }) => {
   const permissions = usePermissions();
@@ -28,7 +33,112 @@ const MedicalRecords: React.FC<MedicalRecordsProps> = ({ animalId, variant = 'fu
 
   const [isCorrection, setIsCorrection] = useState(false);
 
+  const marColumns = useMemo(() => [
+    marColumnHelper.accessor('medication', {
+      header: 'Medication',
+      cell: info => <span className="font-semibold text-slate-900">{info.getValue()}</span>
+    }),
+    marColumnHelper.accessor('animal_name', {
+      header: 'Animal',
+      cell: info => info.getValue()
+    }),
+    marColumnHelper.accessor(row => `${row.dosage} / ${row.frequency}`, {
+      id: 'dosage_freq',
+      header: 'Dosage & Freq',
+      cell: info => info.getValue()
+    }),
+    marColumnHelper.accessor(row => row, {
+      id: 'dates',
+      header: 'Start-End',
+      cell: info => {
+        const m = info.getValue();
+        return `${new Date(m.start_date).toLocaleDateString('en-GB')} - ${m.end_date ? new Date(m.end_date).toLocaleDateString('en-GB') : 'Ongoing'}`;
+      }
+    }),
+    marColumnHelper.accessor('status', {
+      header: 'Status',
+      cell: info => (
+        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
+          {info.getValue()}
+        </span>
+      )
+    }),
+    marColumnHelper.accessor(row => row, {
+      id: 'actions',
+      header: 'Actions',
+      cell: info => {
+        const m = info.getValue();
+        return (
+          <div className="flex gap-2">
+            {m.integrity_seal ? (
+              <span title="Record Sealed"><Lock size={16} className="text-emerald-600" /></span>
+            ) : (
+              <button className="text-slate-400 hover:text-blue-600 transition-colors"><Edit2 size={16} /></button>
+            )}
+            <button onClick={() => generateMarChartDocx(m)} className="text-slate-400 hover:text-blue-600 transition-colors"><Download size={16} /></button>
+          </div>
+        );
+      }
+    })
+  ] as unknown as ColumnDef<MARChart, unknown>[], []);
+
+  const quarantineColumns = useMemo(() => [
+    quarantineColumnHelper.accessor('animal_name', {
+      header: 'Animal',
+      cell: info => <span className="font-semibold text-slate-900">{info.getValue()}</span>
+    }),
+    quarantineColumnHelper.accessor('reason', {
+      header: 'Reason',
+      cell: info => info.getValue()
+    }),
+    quarantineColumnHelper.accessor('start_date', {
+      header: 'Start',
+      cell: info => new Date(info.getValue()).toLocaleDateString('en-GB')
+    }),
+    quarantineColumnHelper.accessor('end_date', {
+      header: 'Target Release',
+      cell: info => new Date(info.getValue()).toLocaleDateString('en-GB')
+    }),
+    quarantineColumnHelper.accessor('status', {
+      header: 'Status',
+      cell: info => {
+        const status = info.getValue();
+        return (
+          <span className={`px-2 py-1 rounded text-xs font-medium ${status === 'Active' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
+            {status}
+          </span>
+        );
+      }
+    }),
+    quarantineColumnHelper.accessor('isolation_notes', {
+      header: 'Notes',
+      cell: info => <span className="max-w-xs truncate block">{info.getValue()}</span>
+    }),
+    quarantineColumnHelper.accessor(row => row, {
+      id: 'actions',
+      header: 'Actions',
+      cell: info => {
+        const q = info.getValue();
+        return (
+          <div className="flex gap-2">
+            <button className="text-slate-400 hover:text-blue-600 transition-colors"><Edit2 size={16} /></button>
+            {q.status === 'Active' && (
+              <button 
+                onClick={() => updateQuarantineRecord({...q, status: 'Cleared'})}
+                className="text-slate-400 hover:text-blue-600 transition-colors"
+                title="Mark as Cleared"
+              >
+                <CheckCircle size={16} />
+              </button>
+            )}
+          </div>
+        );
+      }
+    })
+  ] as unknown as ColumnDef<QuarantineRecord, unknown>[], [updateQuarantineRecord]);
+
   if (!permissions.view_medical) {
+
     return (
       <div className="p-8 flex flex-col items-center justify-center h-full min-h-[50vh] space-y-4">
         <div className="p-4 bg-rose-50 text-rose-600 rounded-2xl border border-rose-100 flex flex-col items-center gap-2 max-w-md text-center">
@@ -398,90 +508,12 @@ const MedicalRecords: React.FC<MedicalRecordsProps> = ({ animalId, variant = 'fu
         </div>
       )}
 
-      {variant === 'full' && (activeTab === 'mar' || activeTab === 'quarantine') && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="w-full overflow-x-auto overflow-y-hidden">
-            {activeTab === 'mar' && (
-              <table className="w-full text-left text-sm whitespace-nowrap">
-                <thead className="bg-slate-50 border-b border-slate-200">
-                  <tr>
-                    <th className="px-6 py-4 text-sm font-medium text-slate-500">Medication</th>
-                    <th className="px-6 py-4 text-sm font-medium text-slate-500">Animal</th>
-                    <th className="px-6 py-4 text-sm font-medium text-slate-500">Dosage & Freq</th>
-                    <th className="px-6 py-4 text-sm font-medium text-slate-500">Start-End</th>
-                    <th className="px-6 py-4 text-sm font-medium text-slate-500">Status</th>
-                    <th className="px-6 py-4 text-sm font-medium text-slate-500">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {filteredMarCharts.map(m => (
-                    <tr key={m.id}>
-                      <td className="px-6 py-4 text-base font-semibold text-slate-900">{String(m.medication)}</td>
-                      <td className="px-6 py-4 text-slate-600">{String(m.animal_name)}</td>
-                      <td className="px-6 py-4 text-slate-600">{String(m.dosage)} / {String(m.frequency)}</td>
-                      <td className="px-6 py-4 text-slate-600">{new Date(m.start_date).toLocaleDateString('en-GB')} - {m.end_date ? new Date(m.end_date).toLocaleDateString('en-GB') : 'Ongoing'}</td>
-                      <td className="px-6 py-4">
-                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
-                          {String(m.status)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 flex gap-2">
-                        {m.integrity_seal ? (
-                          <span title="Record Sealed"><Lock size={16} className="text-emerald-600" /></span>
-                        ) : (
-                          <button className="text-slate-400 hover:text-blue-600 transition-colors"><Edit2 size={16} /></button>
-                        )}
-                        <button onClick={() => generateMarChartDocx(m)} className="text-slate-400 hover:text-blue-600 transition-colors"><Download size={16} /></button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-            {activeTab === 'quarantine' && (
-              <table className="w-full text-left text-sm whitespace-nowrap">
-                <thead className="bg-slate-50 border-b border-slate-200">
-                  <tr>
-                    <th className="px-6 py-4 text-sm font-medium text-slate-500">Animal</th>
-                    <th className="px-6 py-4 text-sm font-medium text-slate-500">Reason</th>
-                    <th className="px-6 py-4 text-sm font-medium text-slate-500">Start</th>
-                    <th className="px-6 py-4 text-sm font-medium text-slate-500">Target Release</th>
-                    <th className="px-6 py-4 text-sm font-medium text-slate-500">Status</th>
-                    <th className="px-6 py-4 text-sm font-medium text-slate-500">Notes</th>
-                    <th className="px-6 py-4 text-sm font-medium text-slate-500">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {filteredQuarantineRecords.map(q => (
-                    <tr key={q.id}>
-                      <td className="px-6 py-4 text-base font-semibold text-slate-900">{String(q.animal_name)}</td>
-                      <td className="px-6 py-4 text-slate-600">{String(q.reason)}</td>
-                      <td className="px-6 py-4 text-slate-600">{new Date(q.start_date).toLocaleDateString('en-GB')}</td>
-                      <td className="px-6 py-4 text-slate-600">{new Date(q.end_date).toLocaleDateString('en-GB')}</td>
-                      <td className="px-6 py-4">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${q.status === 'Active' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
-                          {String(q.status)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 max-w-xs truncate text-slate-600">{String(q.isolation_notes)}</td>
-                      <td className="px-6 py-4 flex gap-2">
-                        <button className="text-slate-400 hover:text-blue-600 transition-colors"><Edit2 size={16} /></button>
-                        {q.status === 'Active' && (
-                          <button 
-                            onClick={() => updateQuarantineRecord({...q, status: 'Cleared'})}
-                            className="text-slate-400 hover:text-blue-600 transition-colors"
-                          >
-                            <CheckCircle size={16} />
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
+      {variant === 'full' && activeTab === 'mar' && (
+        <DataTable columns={marColumns} data={filteredMarCharts} pageSize={10} />
+      )}
+
+      {variant === 'full' && activeTab === 'quarantine' && (
+        <DataTable columns={quarantineColumns} data={filteredQuarantineRecords} pageSize={10} />
       )}
     </div>
   );

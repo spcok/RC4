@@ -7,7 +7,7 @@ export function useDirectoryData() {
 
   useEffect(() => {
     let isMounted = true;
-    const sub: { unsubscribe: () => void } | null = null;
+    
 
     const loadContacts = async () => {
       try {
@@ -26,7 +26,7 @@ export function useDirectoryData() {
 
     return () => {
       isMounted = false;
-      if (sub) sub.unsubscribe();
+      // if (sub) sub.unsubscribe();
     };
   }, []);
 

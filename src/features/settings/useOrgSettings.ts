@@ -19,7 +19,7 @@ export function useOrgSettings() {
 
   useEffect(() => {
     let isMounted = true;
-    const sub: { unsubscribe: () => void } | null = null;
+    
 
     const loadData = async () => {
       try {
@@ -38,7 +38,7 @@ export function useOrgSettings() {
 
     return () => {
       isMounted = false;
-      if (sub) sub.unsubscribe();
+      // if (sub) sub.unsubscribe();
     };
   }, []);
 

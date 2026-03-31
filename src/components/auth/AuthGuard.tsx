@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuthStore } from '../../store/authStore';
-import LoginScreen from '../../features/auth/LoginScreen';
+import { Navigate } from '@tanstack/react-router';
 
 interface Props {
   children: React.ReactNode;
@@ -10,7 +10,7 @@ export const AuthGuard: React.FC<Props> = ({ children }) => {
   const { currentUser } = useAuthStore();
 
   if (!currentUser) {
-    return <LoginScreen />;
+    return <Navigate to="/login" />;
   }
 
   return <>{children}</>;

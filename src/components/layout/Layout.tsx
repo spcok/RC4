@@ -1,5 +1,11 @@
-import { useState, useEffect } from 'react';
-import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
+import { useState, useEffect, createContext, useContext } from 'react';
+import { Outlet, useNavigate, useLocation, Link } from '@tanstack/react-router';
+
+export const LayoutContext = createContext<{ isSidebarCollapsed: boolean }>({ isSidebarCollapsed: false });
+
+export function useLayoutContext() {
+  return useContext(LayoutContext);
+}
 import { usePermissions } from '../../hooks/usePermissions';
 import { useAuthStore } from '../../store/authStore';
 import { 
@@ -15,13 +21,13 @@ const NAVIGATION_GROUPS = [
   {
     title: 'Overview',
     items: [
-      { name: 'Dashboard', path: '/', icon: LayoutDashboard, permKey: null },
+      { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, permKey: null },
     ]
   },
   {
     title: 'Husbandry',
     items: [
-      { name: 'Daily Log', path: '/daily-log', icon: ClipboardList, permKey: 'view_daily_logs' },
+      { name: 'Daily Log', path: '/husbandry', icon: ClipboardList, permKey: 'view_daily_logs' },
       { name: 'Daily Rounds', path: '/daily-rounds', icon: CheckSquare, permKey: 'view_daily_rounds' },
       { name: 'Tasks', path: '/tasks', icon: CheckSquare, permKey: 'view_tasks' },
       { name: 'Feeding Schedule', path: '/feeding-schedule', icon: CalendarDays, permKey: null },
@@ -37,8 +43,8 @@ const NAVIGATION_GROUPS = [
   {
     title: 'Logistics',
     items: [
-      { name: 'Movements', path: '/movements', icon: ArrowRightLeft, permKey: 'view_movements' },
-      { name: 'Flight Records', path: '/flight-records', icon: Plane, permKey: null },
+      { name: 'Movements', path: '/logistics/movements', icon: ArrowRightLeft, permKey: 'view_movements' },
+      { name: 'Flight Records', path: '/logistics/flights', icon: Plane, permKey: null },
     ]
   },
   {
@@ -53,15 +59,15 @@ const NAVIGATION_GROUPS = [
   {
     title: 'Staff',
     items: [
-      { name: 'Timesheets', path: '/timesheets', icon: Clock, permKey: 'submit_timesheets' },
-      { name: 'Holidays', path: '/holidays', icon: Calendar, permKey: 'request_holidays' },
-      { name: 'Rota', path: '/rota', icon: Users, permKey: null },
+      { name: 'Timesheets', path: '/staff/timesheets', icon: Clock, permKey: 'submit_timesheets' },
+      { name: 'Holidays', path: '/staff/holidays', icon: Calendar, permKey: 'request_holidays' },
+      { name: 'Rota', path: '/staff/rota', icon: Users, permKey: null },
     ]
   },
   {
     title: 'System',
     items: [
-      { name: 'Compliance', path: '/compliance', icon: FileCheck, permKey: 'view_missing_records' },
+      { name: 'Compliance', path: '/reports/compliance', icon: FileCheck, permKey: 'view_missing_records' },
       { name: 'Reports', path: '/reports', icon: BarChart2, permKey: 'generate_reports' },
       { name: 'Settings', path: '/settings', icon: Settings, permKey: 'view_settings' },
       { name: 'Help', path: '/help', icon: HelpCircle, permKey: null },
@@ -86,23 +92,23 @@ export default function Layout() {
     let isAllowed = true;
 
     if (path.startsWith('/medical') && !permissions.view_medical) isAllowed = false;
-    else if (path.startsWith('/daily-log') && !permissions.view_daily_logs) isAllowed = false;
+    else if (path.startsWith('/husbandry') && !permissions.view_daily_logs) isAllowed = false;
     else if (path.startsWith('/tasks') && !permissions.view_tasks) isAllowed = false;
     else if (path.startsWith('/daily-rounds') && !permissions.view_daily_rounds) isAllowed = false;
-    else if (path.startsWith('/movements') && !permissions.view_movements) isAllowed = false;
+    else if (path.startsWith('/logistics/movements') && !permissions.view_movements) isAllowed = false;
     else if (path.startsWith('/maintenance') && !permissions.view_maintenance) isAllowed = false;
     else if (path.startsWith('/incidents') && !permissions.view_incidents) isAllowed = false;
     else if (path.startsWith('/first-aid') && !permissions.view_first_aid) isAllowed = false;
     else if (path.startsWith('/safety-drills') && !permissions.view_safety_drills) isAllowed = false;
-    else if (path.startsWith('/timesheets') && !permissions.submit_timesheets) isAllowed = false;
-    else if (path.startsWith('/holidays') && !permissions.request_holidays) isAllowed = false;
-    else if (path.startsWith('/compliance') && !permissions.view_missing_records) isAllowed = false;
+    else if (path.startsWith('/staff/timesheets') && !permissions.submit_timesheets) isAllowed = false;
+    else if (path.startsWith('/staff/holidays') && !permissions.request_holidays) isAllowed = false;
+    else if (path.startsWith('/reports/compliance') && !permissions.view_missing_records) isAllowed = false;
     else if (path.startsWith('/reports') && !permissions.generate_reports) isAllowed = false;
     else if (path.startsWith('/settings') && !permissions.view_settings) isAllowed = false;
 
     if (!isAllowed) {
       console.warn('🛠️ [Security QA] Unauthorized route access blocked.');
-      navigate('/', { replace: true });
+      navigate({ to: '/', replace: true });
     }
   }, [location.pathname, navigate, permissions]);
 
@@ -249,7 +255,9 @@ export default function Layout() {
 
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-50">
-          <Outlet context={{ isSidebarCollapsed }} />
+          <LayoutContext.Provider value={{ isSidebarCollapsed }}>
+            <Outlet />
+          </LayoutContext.Provider>
         </main>
       </div>
       

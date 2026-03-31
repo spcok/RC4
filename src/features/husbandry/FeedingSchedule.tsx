@@ -11,7 +11,7 @@ const FeedingSchedule: React.FC = () => {
 
   useEffect(() => {
     let isMounted = true;
-    const sub: { unsubscribe: () => void } | null = null;
+    
 
     const loadData = async () => {
       try {
@@ -28,7 +28,7 @@ const FeedingSchedule: React.FC = () => {
 
     return () => {
       isMounted = false;
-      if (sub) sub.unsubscribe();
+      // if (sub) sub.unsubscribe();
     };
   }, []);
 

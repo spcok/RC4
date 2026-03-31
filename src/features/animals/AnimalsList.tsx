@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@tanstack/react-router';
 import { Animal } from '../../types';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useAnimalsData } from './useAnimalsData';
@@ -20,7 +20,7 @@ const AnimalsList = () => {
 
   // 🚨 3. Handling the click routing natively
   const handleSelectAnimal = (animal: Animal) => {
-    navigate(`/animals/${animal.id}`);
+    navigate({ to: '/animals/$id', params: { id: animal.id } });
   };
 
   return (

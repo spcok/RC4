@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@tanstack/react-router';
 import { useAuthStore } from '../../store/authStore';
 import { Loader2, ShieldCheck, Mail, Lock, Bird } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -14,7 +14,7 @@ const LoginScreen: React.FC = () => {
   // Auto-redirect if they hit the /login URL but are already authenticated
   useEffect(() => {
     if (currentUser) {
-      navigate('/dashboard', { replace: true });
+      navigate({ to: '/dashboard', replace: true });
     }
   }, [currentUser, navigate]);
 
@@ -24,7 +24,7 @@ const LoginScreen: React.FC = () => {
     try {
       await login(email, password);
       // Explicitly push the router to the dashboard upon success
-      navigate('/dashboard', { replace: true });
+      navigate({ to: '/dashboard', replace: true });
     } catch (err: unknown) {
       setLocalError(err instanceof Error ? err.message : 'Authentication failed. Please check your credentials.');
     }

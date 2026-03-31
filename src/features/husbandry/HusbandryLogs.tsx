@@ -1,41 +1,35 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { Plus, Loader2, Edit2, Trash2 } from 'lucide-react';
+import { createColumnHelper, ColumnDef } from '@tanstack/react-table';
 import AddEntryModal from './AddEntryModal';
 import { Animal, LogType, LogEntry } from '../../types';
 import { formatWeightDisplay, parseLegacyWeightToGrams } from '../../services/weightUtils';
-// 🚨 CRITICAL FIX: Import your standardized data hook
 import { useDailyLogData } from './useDailyLogData'; 
+import { DataTable } from '../../components/ui/DataTable';
 
 interface Props {
-  animal: Animal; 
+  animal?: Animal; // Made optional in case it mounts from the global routing tree
 }
 
 const validHusbandryTypes = ['FEED', 'WEIGHT', 'FLIGHT', 'TRAINING', 'TEMPERATURE'];
 
-export const HusbandryLogs: React.FC<Props> = ({ animal }) => {
-  // 🚨 CRITICAL FIX: Single Source of Truth
+const columnHelper = createColumnHelper<LogEntry>();
+
+const HusbandryLogs: React.FC<Props> = ({ animal }) => {
   const { dailyLogs: logs, isLoading: loading } = useDailyLogData('', 'all');
   
   const [filter, setFilter] = useState('ALL');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
-  const [displayLimit, setDisplayLimit] = useState(30);
-
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    if (scrollHeight - scrollTop <= clientHeight + 20) {
-      setDisplayLimit(prev => prev + 20);
-    }
-  };
+  const [selectedLog, setSelectedLog] = useState<LogEntry | undefined>(undefined);
   
   const filters = ['ALL', ...validHusbandryTypes];
 
-  const handleSaveLog = async (entry: LogEntry) => {
+  const handleSaveLog = async (entry: Partial<LogEntry>) => {
     try {
       console.log("☢️ [Zero Dawn] Save husbandry log is neutralized.", entry);
       alert("Database engine is neutralized. Log cannot be saved.");
       setIsAddModalOpen(false);
-      setSelectedLog(null);
+      setSelectedLog(undefined);
     } catch (err) {
       console.error('Failed to save log:', err);
     }
@@ -56,12 +50,17 @@ export const HusbandryLogs: React.FC<Props> = ({ animal }) => {
     if (filter !== 'ALL') {
       baseLogs = baseLogs.filter(log => log.log_type?.toUpperCase() === filter);
     }
-    return baseLogs;
+    // Sort by date descending
+    return baseLogs.sort((a, b) => {
+      const dateA = new Date(a.log_date || a.created_at || 0).getTime();
+      const dateB = new Date(b.log_date || b.created_at || 0).getTime();
+      return dateB - dateA;
+    });
   }, [logs, filter]);
 
   const renderLogValue = useCallback((log: LogEntry) => {
     if (log.log_type?.toUpperCase() === 'WEIGHT') {
-      const targetUnit = animal.weight_unit || 'g';
+      const targetUnit = animal?.weight_unit || 'g';
       const val = (log.value || '').toLowerCase();
 
       if (log.weight_unit && targetUnit && log.weight_unit === targetUnit) return log.value;
@@ -77,7 +76,7 @@ export const HusbandryLogs: React.FC<Props> = ({ animal }) => {
       }
     }
     return log.value || log.notes || '—';
-  }, [animal.weight_unit]);
+  }, [animal?.weight_unit]);
 
   const getTypeColor = useCallback((type: string) => {
     const safeType = type?.toUpperCase();
@@ -91,8 +90,60 @@ export const HusbandryLogs: React.FC<Props> = ({ animal }) => {
     }
   }, []);
 
+  const columns = useMemo(() => [
+    columnHelper.accessor(row => row.log_date || row.created_at, {
+      id: 'date',
+      header: 'Date',
+      cell: info => {
+        const val = info.getValue();
+        return val ? new Date(val).toLocaleDateString() : '—';
+      }
+    }),
+    columnHelper.accessor('log_type', {
+      header: 'Type',
+      cell: info => {
+        const type = info.getValue() || '';
+        return (
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${getTypeColor(type)}`}>
+            {type}
+          </span>
+        );
+      }
+    }),
+    columnHelper.accessor(row => row, {
+      id: 'value',
+      header: 'Value',
+      cell: info => <span className="font-bold text-slate-900">{renderLogValue(info.getValue())}</span>
+    }),
+    columnHelper.accessor('user_initials', {
+      header: 'Initials / Actions',
+      cell: info => {
+        const log = info.row.original;
+        return (
+          <div className="flex items-center gap-2 text-slate-500 font-bold uppercase text-xs">
+            {info.getValue() || '—'}
+            <button 
+              onClick={() => { setSelectedLog(log); setIsAddModalOpen(true); }} 
+              className="text-blue-600 hover:text-blue-800 p-1"
+              title="Edit Log"
+            >
+              <Edit2 size={14} />
+            </button>
+            <button 
+              onClick={() => handleDeleteLog(log.id!)} 
+              className="text-red-600 hover:text-red-800 p-1"
+              title="Delete Log"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
+        );
+      }
+    })
+  ] as unknown as ColumnDef<LogEntry, unknown>[], [getTypeColor, renderLogValue]);
+
   return (
-    <div className="space-y-2 relative">
+    <div className="space-y-4 relative">
       <div className="flex gap-2 flex-wrap">
         {filters.map(f => (
           <button 
@@ -106,65 +157,27 @@ export const HusbandryLogs: React.FC<Props> = ({ animal }) => {
       </div>
 
       <button 
-        onClick={() => { setSelectedLog(null); setIsAddModalOpen(true); }}
-        className="flex items-center gap-2 bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-700 transition"
+        onClick={() => { setSelectedLog(undefined); setIsAddModalOpen(true); }}
+        className="flex items-center gap-2 bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-700 transition w-fit"
       >
         <Plus size={16} /> + ADD HUSBANDRY LOG
       </button>
 
-      <div className="bg-white border border-slate-200 rounded-lg overflow-hidden max-h-[400px] overflow-y-auto custom-scrollbar" onScroll={handleScroll}>
-        <table className="w-full text-left text-sm">
-          <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
-            <tr>
-              <th className="px-2 py-2 font-bold text-slate-500">DATE</th>
-              <th className="px-2 py-2 font-bold text-slate-500">TYPE</th>
-              <th className="px-2 py-2 font-bold text-slate-500">VALUE</th>
-              <th className="px-2 py-2 font-bold text-slate-500 uppercase">INITIALS / ACTIONS</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {loading ? (
-              <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-slate-400">
-                  <Loader2 className="animate-spin mx-auto" size={24} />
-                </td>
-              </tr>
-            ) : filteredLogs.length > 0 ? (
-              filteredLogs.slice(0, displayLimit).map(log => (
-                <tr key={log.id} className="hover:bg-slate-50">
-                  <td className="px-2 py-2 text-slate-700">
-                    {new Date(log.log_date || log.created_at || new Date()).toLocaleDateString()}
-                  </td>
-                  <td className="px-2 py-2">
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${getTypeColor(log.log_type || '')}`}>
-                      {log.log_type}
-                    </span>
-                  </td>
-                  <td className="px-2 py-2 font-bold text-slate-900">
-                    {renderLogValue(log)}
-                  </td>
-                  <td className="px-2 py-2 text-slate-500 font-bold uppercase text-xs flex items-center gap-2">
-                    {log.user_initials || '—'}
-                    <button onClick={() => { setSelectedLog(log); setIsAddModalOpen(true); }} className="text-blue-600 hover:text-blue-800 p-1"><Edit2 size={14} /></button>
-                    <button onClick={() => handleDeleteLog(log.id!)} className="text-red-600 hover:text-red-800 p-1"><Trash2 size={14} /></button>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-slate-500">No husbandry logs found.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      {loading ? (
+        <div className="p-8 text-center text-slate-400 border border-slate-200 rounded-lg bg-white">
+          <Loader2 className="animate-spin mx-auto" size={24} />
+          <p className="mt-2 text-sm">Loading logs...</p>
+        </div>
+      ) : (
+        <DataTable columns={columns} data={filteredLogs} pageSize={10} />
+      )}
 
-      {isAddModalOpen && animal && (
+      {isAddModalOpen && (animal || true) && (
         <AddEntryModal
           isOpen={isAddModalOpen}
-          onClose={() => { setIsAddModalOpen(false); setSelectedLog(null); }}
+          onClose={() => { setIsAddModalOpen(false); setSelectedLog(undefined); }}
           onSave={handleSaveLog}
-          animal={animal}
+          animal={animal!}
           existingLog={selectedLog}
           initialType={LogType.FEED}
           initialDate={new Date().toISOString().split('T')[0]}
@@ -173,3 +186,5 @@ export const HusbandryLogs: React.FC<Props> = ({ animal }) => {
     </div>
   );
 };
+
+export default HusbandryLogs;

@@ -1,10 +1,16 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Truck, Plus, History, MapPin, Calendar, User as UserIcon, ArrowRight, Plane, Lock } from 'lucide-react';
 import { useMovementsData } from './useMovementsData';
 import { useTransfersData } from './useTransfersData';
 import AddMovementModal from './AddMovementModal';
 import AddTransferModal from './AddTransferModal';
 import { usePermissions } from '../../hooks/usePermissions';
+import { DataTable } from '../../components/ui/DataTable';
+import { createColumnHelper, ColumnDef } from '@tanstack/react-table';
+import { InternalMovement, ExternalTransfer } from '../../types';
+
+const movementColumnHelper = createColumnHelper<InternalMovement>();
+const transferColumnHelper = createColumnHelper<ExternalTransfer>();
 
 export default function Movements() {
   const { view_movements } = usePermissions();
@@ -12,6 +18,121 @@ export default function Movements() {
   const { transfers } = useTransfersData();
   const [activeTab, setActiveTab] = useState<'internal' | 'external'>('internal');
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const movementColumns = useMemo(() => [
+    movementColumnHelper.accessor('log_date', {
+      header: 'Date',
+      cell: info => (
+        <div className="flex items-center gap-1.5 text-slate-600 font-semibold text-sm">
+          <Calendar size={14} className="text-slate-400" />
+          {new Date(info.getValue()).toLocaleDateString('en-GB')}
+        </div>
+      )
+    }),
+    movementColumnHelper.accessor('animal_name', {
+      header: 'Animal',
+      cell: info => (
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-blue-50 text-blue-600">
+            <Truck size={16} />
+          </div>
+          <span className="font-semibold text-slate-900">{info.getValue()}</span>
+        </div>
+      )
+    }),
+    movementColumnHelper.accessor('movement_type', {
+      header: 'Type',
+      cell: info => <span className="text-sm font-medium text-slate-500">{info.getValue()}</span>
+    }),
+    movementColumnHelper.accessor(row => row, {
+      id: 'route',
+      header: 'Route',
+      cell: info => {
+        const m = info.getValue();
+        return (
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 font-semibold text-slate-900 text-sm">
+              <MapPin size={14} className="text-slate-400" />
+              {m.source_location}
+            </div>
+            <ArrowRight className="text-slate-300" size={16} />
+            <div className="flex items-center gap-1.5 font-semibold text-slate-900 text-sm">
+              <MapPin size={14} className="text-slate-400" />
+              {m.destination_location}
+            </div>
+          </div>
+        );
+      }
+    }),
+    movementColumnHelper.accessor('created_by', {
+      header: 'Authorized By',
+      cell: info => (
+        <div className="text-sm font-medium text-slate-500 flex items-center gap-1">
+          <UserIcon size={12}/> {info.getValue()}
+        </div>
+      )
+    })
+  ] as unknown as ColumnDef<InternalMovement, unknown>[], []);
+
+  const transferColumns = useMemo(() => [
+    transferColumnHelper.accessor('date', {
+      header: 'Date',
+      cell: info => (
+        <div className="flex items-center gap-1.5 text-slate-600 font-semibold text-sm">
+          <Calendar size={14} className="text-slate-400" />
+          {new Date(info.getValue()).toLocaleDateString('en-GB')}
+        </div>
+      )
+    }),
+    transferColumnHelper.accessor('animal_name', {
+      header: 'Animal',
+      cell: info => {
+        const type = info.row.original.transfer_type;
+        return (
+          <div className="flex items-center gap-3">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+              type === 'Arrival' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+            }`}>
+              <Plane size={16} />
+            </div>
+            <span className="font-semibold text-slate-900">{info.getValue()}</span>
+          </div>
+        );
+      }
+    }),
+    transferColumnHelper.accessor('transfer_type', {
+      header: 'Type',
+      cell: info => {
+        const type = info.getValue();
+        return (
+          <span className={`text-sm font-medium ${
+            type === 'Arrival' ? 'text-emerald-600' : 'text-amber-600'
+          }`}>{type}</span>
+        );
+      }
+    }),
+    transferColumnHelper.accessor('institution', {
+      header: 'Institution',
+      cell: info => <span className="font-semibold text-slate-900 text-sm">{info.getValue()}</span>
+    }),
+    transferColumnHelper.accessor('cites_article_10_ref', {
+      header: 'CITES / A10',
+      cell: info => <span className="font-semibold text-slate-900 text-sm">{info.getValue() || '—'}</span>
+    }),
+    transferColumnHelper.accessor('status', {
+      header: 'Status',
+      cell: info => {
+        const status = info.getValue();
+        return (
+          <div className={`px-2 py-0.5 rounded-full text-xs font-semibold border w-fit ${
+            status === 'Completed' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'
+          }`}>
+            {status}
+          </div>
+        );
+      }
+    })
+  ] as unknown as ColumnDef<ExternalTransfer, unknown>[], []);
 
   if (!view_movements) {
     return (
@@ -65,94 +186,23 @@ export default function Movements() {
 
       <div className="grid grid-cols-1 gap-4">
         {activeTab === 'internal' ? (
-          (movements || []).map(movement => (
-            <div key={movement.id} className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-sm hover:shadow-md transition-all">
-              <div className="flex items-center gap-4 min-w-[200px]">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-blue-50 text-blue-600">
-                  <Truck size={24} />
-                </div>
-                <div>
-                  <h3 className="text-base font-semibold text-slate-900">{String(movement.animal_name)}</h3>
-                  <p className="text-sm font-medium text-slate-500">{String(movement.movement_type)}</p>
-                </div>
-              </div>
-
-              <div className="flex-1 flex items-center justify-center gap-4 bg-slate-50 px-6 py-4 rounded-xl border border-slate-100">
-                <div className="text-center flex-1">
-                  <p className="text-sm font-medium text-slate-500 mb-1">Origin</p>
-                  <div className="flex items-center justify-center gap-1.5 font-semibold text-slate-900 text-sm">
-                    <MapPin size={14} className="text-slate-400" />
-                    {String(movement.source_location)}
-                  </div>
-                </div>
-                <ArrowRight className="text-slate-300" size={20} />
-                <div className="text-center flex-1">
-                  <p className="text-sm font-medium text-slate-500 mb-1">Destination</p>
-                  <div className="flex items-center justify-center gap-1.5 font-semibold text-slate-900 text-sm">
-                    <MapPin size={14} className="text-slate-400" />
-                    {String(movement.destination_location)}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col items-end gap-2 min-w-[150px]">
-                <div className="flex items-center gap-1.5 text-slate-600 font-semibold text-sm">
-                  <Calendar size={14} className="text-slate-400" />
-                  {String(movement.log_date)}
-                </div>
-                <div className="text-sm font-medium text-slate-500 flex items-center gap-1">
-                  <UserIcon size={12}/> {String(movement.created_by)}
-                </div>
-              </div>
+          movements && movements.length > 0 ? (
+            <DataTable columns={movementColumns} data={movements} pageSize={10} />
+          ) : (
+            <div className="text-center py-24 bg-white rounded-xl border border-dashed border-slate-200">
+              <History size={48} className="mx-auto mb-4 text-slate-200"/>
+              <p className="text-slate-500 text-sm font-medium">No internal records found</p>
             </div>
-          ))
+          )
         ) : (
-          (transfers || []).map(transfer => (
-            <div key={transfer.id} className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-sm hover:shadow-md transition-all">
-              <div className="flex items-center gap-4 min-w-[200px]">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
-                  transfer.transfer_type === 'Arrival' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
-                }`}>
-                  <Plane size={24} />
-                </div>
-                <div>
-                  <h3 className="text-base font-semibold text-slate-900">{String(transfer.animal_name)}</h3>
-                  <p className={`text-sm font-medium ${
-                    transfer.transfer_type === 'Arrival' ? 'text-emerald-600' : 'text-amber-600'
-                  }`}>{String(transfer.transfer_type)}</p>
-                </div>
-              </div>
-
-              <div className="flex-1 flex items-center justify-center gap-4 bg-slate-50 px-6 py-4 rounded-xl border border-slate-100">
-                <div className="text-center flex-1">
-                  <p className="text-sm font-medium text-slate-500 mb-1">Institution</p>
-                  <div className="font-semibold text-slate-900 text-sm">{String(transfer.institution)}</div>
-                </div>
-                <div className="text-center flex-1">
-                  <p className="text-sm font-medium text-slate-500 mb-1">CITES / A10</p>
-                  <div className="font-semibold text-slate-900 text-sm">{String(transfer.cites_article_10_ref)}</div>
-                </div>
-              </div>
-
-              <div className="flex flex-col items-end gap-2 min-w-[150px]">
-                <div className="flex items-center gap-1.5 text-slate-600 font-semibold text-sm">
-                  <Calendar size={14} className="text-slate-400" />
-                  {String(transfer.date)}
-                </div>
-                <div className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${
-                  transfer.status === 'Completed' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'
-                }`}>
-                  {String(transfer.status)}
-                </div>
-              </div>
+          transfers && transfers.length > 0 ? (
+            <DataTable columns={transferColumns} data={transfers} pageSize={10} />
+          ) : (
+            <div className="text-center py-24 bg-white rounded-xl border border-dashed border-slate-200">
+              <History size={48} className="mx-auto mb-4 text-slate-200"/>
+              <p className="text-slate-500 text-sm font-medium">No external records found</p>
             </div>
-          ))
-        )}
-        {(activeTab === 'internal' ? movements : transfers || []).length === 0 && (
-          <div className="text-center py-24 bg-white rounded-xl border border-dashed border-slate-200">
-            <History size={48} className="mx-auto mb-4 text-slate-200"/>
-            <p className="text-slate-500 text-sm font-medium">No {activeTab} records found</p>
-          </div>
+          )
         )}
       </div>
 

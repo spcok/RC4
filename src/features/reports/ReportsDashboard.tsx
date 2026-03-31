@@ -151,9 +151,9 @@ export default function ReportsDashboard() {
 
   useEffect(() => {
     let isMounted = true;
-    const animalsSub: { unsubscribe: () => void } | null = null;
-    const archivedSub: { unsubscribe: () => void } | null = null;
-    const shiftsSub: { unsubscribe: () => void } | null = null;
+    
+    
+    
 
     const loadData = async () => {
       try {
@@ -171,9 +171,9 @@ export default function ReportsDashboard() {
 
     return () => {
       isMounted = false;
-      if (animalsSub) animalsSub.unsubscribe();
-      if (archivedSub) archivedSub.unsubscribe();
-      if (shiftsSub) shiftsSub.unsubscribe();
+      // if (animalsSub) animalsSub.unsubscribe();
+      // if (archivedSub) archivedSub.unsubscribe();
+      // if (shiftsSub) shiftsSub.unsubscribe();
     };
   }, []);
 

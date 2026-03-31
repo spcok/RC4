@@ -7,7 +7,7 @@ export function useZLADocsData() {
 
   useEffect(() => {
     let isMounted = true;
-    const sub: { unsubscribe: () => void } | null = null;
+    
 
     const loadDocs = async () => {
       try {
@@ -26,7 +26,7 @@ export function useZLADocsData() {
 
     return () => {
       isMounted = false;
-      if (sub) sub.unsubscribe();
+      // if (sub) sub.unsubscribe();
     };
   }, []);
 

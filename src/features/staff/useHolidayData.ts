@@ -7,7 +7,7 @@ export function useHolidayData() {
 
   useEffect(() => {
     let isMounted = true;
-    const sub: { unsubscribe: () => void } | null = null;
+    
 
     const loadData = async () => {
       try {
@@ -26,7 +26,7 @@ export function useHolidayData() {
 
     return () => {
       isMounted = false;
-      if (sub) sub.unsubscribe();
+      // if (sub) sub.unsubscribe();
     };
   }, []);
 

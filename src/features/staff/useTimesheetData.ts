@@ -7,7 +7,7 @@ export function useTimesheetData() {
 
   useEffect(() => {
     let isMounted = true;
-    const sub: { unsubscribe: () => void } | null = null;
+    
 
     const loadData = async () => {
       try {
@@ -26,7 +26,7 @@ export function useTimesheetData() {
 
     return () => {
       isMounted = false;
-      if (sub) sub.unsubscribe();
+      // if (sub) sub.unsubscribe();
     };
   }, []);
 

@@ -147,9 +147,9 @@ const AnimalFormModal: React.FC<AnimalFormModalProps> = ({ isOpen, onClose, init
     // Scrub empty strings from UUID fields to prevent Postgres syntax errors
     const sanitizedData = {
       ...data,
-      parent_mob_id: data.parent_mob_id === "" ? null : data.parent_mob_id,
-      sire_id: data.sire_id === "" ? null : data.sire_id,
-      dam_id: data.dam_id === "" ? null : data.dam_id};
+      parent_mob_id: (data.parent_mob_id === "" ? undefined : data.parent_mob_id) as string | undefined,
+      sire_id: (data.sire_id === "" ? undefined : data.sire_id) as string | undefined,
+      dam_id: (data.dam_id === "" ? undefined : data.dam_id) as string | undefined};
 
     // Establish the target ID early
     const targetId = initialData?.id || crypto.randomUUID();
@@ -178,8 +178,8 @@ const AnimalFormModal: React.FC<AnimalFormModalProps> = ({ isOpen, onClose, init
       target_humidity_min_percent: sanitizedData.target_humidity_min_percent,
       target_humidity_max_percent: sanitizedData.target_humidity_max_percent,
       misting_frequency: sanitizedData.misting_frequency,
-      flying_weight_g: flightGrams > 0 ? flightGrams : null,
-      winter_weight_g: winterGrams > 0 ? winterGrams : null,
+      flying_weight_g: flightGrams > 0 ? flightGrams : undefined,
+      winter_weight_g: winterGrams > 0 ? winterGrams : undefined,
       weight_unit: (weightUnit === 'lb' ? 'lbs_oz' : weightUnit) as Animal['weight_unit'],
       updated_at: new Date().toISOString(),
       created_at: initialData?.created_at || new Date().toISOString(),
@@ -254,11 +254,11 @@ const AnimalFormModal: React.FC<AnimalFormModalProps> = ({ isOpen, onClose, init
       setEnvNa(isNa);
       if (isNa) {
           // Clear out the values if N/A is checked so they wipe from the DB
-          setValue('target_day_temp_c', null);
-          setValue('target_night_temp_c', null);
-          setValue('target_humidity_min_percent', null);
-          setValue('target_humidity_max_percent', null);
-          setValue('misting_frequency', null);
+          setValue('target_day_temp_c', undefined);
+          setValue('target_night_temp_c', undefined);
+          setValue('target_humidity_min_percent', undefined);
+          setValue('target_humidity_max_percent', undefined);
+          setValue('misting_frequency', undefined);
       }
   };
 
@@ -384,10 +384,10 @@ const AnimalFormModal: React.FC<AnimalFormModalProps> = ({ isOpen, onClose, init
                                             <div className="p-3 bg-white border border-amber-200 rounded-md">
                                                 <span className="text-sm font-bold text-amber-900 block">{linkedChildrenCount} Linked Individuals</span>
                                                 <span className="text-xs text-amber-700 block">Census is automatically managed based on linked individuals.</span>
-                                                <input type="hidden" {...register('census_count', { setValueAs: v => (v === "" || Number.isNaN(Number(v))) ? null : Number(v) })} value={linkedChildrenCount} />
+                                                <input type="hidden" {...register('census_count', { setValueAs: v => (v === "" || Number.isNaN(Number(v))) ? undefined : Number(v) })} value={linkedChildrenCount} />
                                             </div>
                                         ) : (
-                                            <input type="number" {...register('census_count', { setValueAs: v => (v === "" || Number.isNaN(Number(v))) ? null : Number(v) })} className={inputClass} placeholder="Manual Census (Leave blank if linking individuals later)" />
+                                            <input type="number" {...register('census_count', { setValueAs: v => (v === "" || Number.isNaN(Number(v))) ? undefined : Number(v) })} className={inputClass} placeholder="Manual Census (Leave blank if linking individuals later)" />
                                         )}
                                     </div>
                                 </div>
@@ -541,7 +541,7 @@ const AnimalFormModal: React.FC<AnimalFormModalProps> = ({ isOpen, onClose, init
                                             type="number" 
                                             step="0.1"
                                             {...register('water_tipping_temp', { 
-                                                setValueAs: v => (v === "" || Number.isNaN(parseFloat(v))) ? null : parseFloat(v) 
+                                                setValueAs: v => (v === "" || Number.isNaN(parseFloat(v))) ? undefined : parseFloat(v) 
                                             })} 
                                             className={inputClass} 
                                             placeholder="e.g. 2.0" 
@@ -772,19 +772,19 @@ const AnimalFormModal: React.FC<AnimalFormModalProps> = ({ isOpen, onClose, init
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                                         <div>
                                             <label className={labelClass}>Day Temp (°C)</label>
-                                            <input type="number" step="0.1" {...register('target_day_temp_c', { setValueAs: v => (v === "" || Number.isNaN(parseFloat(v))) ? null : parseFloat(v) })} className={inputClass} placeholder="28.5" />
+                                            <input type="number" step="0.1" {...register('target_day_temp_c', { setValueAs: v => (v === "" || Number.isNaN(parseFloat(v))) ? undefined : parseFloat(v) })} className={inputClass} placeholder="28.5" />
                                         </div>
                                         <div>
                                             <label className={labelClass}>Night Temp (°C)</label>
-                                            <input type="number" step="0.1" {...register('target_night_temp_c', { setValueAs: v => (v === "" || Number.isNaN(parseFloat(v))) ? null : parseFloat(v) })} className={inputClass} placeholder="22.0" />
+                                            <input type="number" step="0.1" {...register('target_night_temp_c', { setValueAs: v => (v === "" || Number.isNaN(parseFloat(v))) ? undefined : parseFloat(v) })} className={inputClass} placeholder="22.0" />
                                         </div>
                                         <div>
                                             <label className={labelClass}>Min Humidity %</label>
-                                            <input type="number" {...register('target_humidity_min_percent', { setValueAs: v => (v === "" || Number.isNaN(parseInt(v))) ? null : parseInt(v) })} className={inputClass} placeholder="60" />
+                                            <input type="number" {...register('target_humidity_min_percent', { setValueAs: v => (v === "" || Number.isNaN(parseInt(v))) ? undefined : parseInt(v) })} className={inputClass} placeholder="60" />
                                         </div>
                                         <div>
                                             <label className={labelClass}>Max Humidity %</label>
-                                            <input type="number" {...register('target_humidity_max_percent', { setValueAs: v => (v === "" || Number.isNaN(parseInt(v))) ? null : parseInt(v) })} className={inputClass} placeholder="80" />
+                                            <input type="number" {...register('target_humidity_max_percent', { setValueAs: v => (v === "" || Number.isNaN(parseInt(v))) ? undefined : parseInt(v) })} className={inputClass} placeholder="80" />
                                         </div>
                                         <div>
                                             <label className={labelClass}>Misting Freq.</label>

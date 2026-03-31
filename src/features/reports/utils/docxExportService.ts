@@ -65,7 +65,7 @@ const createDocumentHeader = async (config?: ReportConfig): Promise<Table> => {
             children: [
               new Paragraph({ text: "" }),
               new Paragraph({ children: [new TextRun({ text: config?.reportName || '', bold: true, size: 38 })], alignment: AlignmentType.RIGHT }),
-              new Paragraph({ children: [new TextRun({ text: `Date: ${config?.startDate === config?.endDate ? config.startDate : config?.startDate + ' to ' + config?.endDate}`, size: 26, color: "666666" })], alignment: AlignmentType.RIGHT }),
+              new Paragraph({ children: [new TextRun({ text: `Date: ${config?.startDate === config?.endDate ? config?.startDate : config?.startDate + ' to ' + config?.endDate}`, size: 26, color: "666666" })], alignment: AlignmentType.RIGHT }),
               new Paragraph({ children: [new TextRun({ text: `Generated: ${new Date().toLocaleDateString()}`, size: 26, color: "666666" })], alignment: AlignmentType.RIGHT }),
               new Paragraph({ children: [new TextRun({ text: `Initials: ${config?.generatedBy || ''}`, size: 26, color: "666666" })], alignment: AlignmentType.RIGHT }),
             ],

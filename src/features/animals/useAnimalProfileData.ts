@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Animal, ClinicalNote, LogEntry, Task } from '../../types';
+import { Animal } from '../../types';
 import { supabase } from '../../lib/supabase';
 
 export function useAnimalProfileData(animalId: string | undefined) {
@@ -19,9 +19,5 @@ export function useAnimalProfileData(animalId: string | undefined) {
     enabled: !!animalId,
   });
 
-  const dailyLogs: LogEntry[] = [];
-  const medicalLogs: ClinicalNote[] = [];
-  const tasks: Task[] = [];
-
-  return { animal, dailyLogs, medicalLogs, tasks, isLoading };
+  return { animal, isLoading };
 }

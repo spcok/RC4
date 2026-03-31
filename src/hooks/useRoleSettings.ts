@@ -6,7 +6,7 @@ export const useRoleSettings = () => {
 
   useEffect(() => {
     let isMounted = true;
-    const sub: { unsubscribe: () => void } | null = null;
+    
 
     const loadData = async () => {
       try {
@@ -23,7 +23,7 @@ export const useRoleSettings = () => {
 
     return () => {
       isMounted = false;
-      if (sub) sub.unsubscribe();
+      // // if (sub) sub.unsubscribe();
     };
   }, []);
 

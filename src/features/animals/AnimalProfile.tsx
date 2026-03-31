@@ -1,12 +1,12 @@
 import React, { useState, useEffect, Suspense } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from '@tanstack/react-router';
 import { FileText, Stethoscope, ClipboardList, ArrowLeft, ShieldAlert, Thermometer, Scale, AlertTriangle, GitMerge } from 'lucide-react';
 import { useAnimalProfileData } from './useAnimalProfileData';
 import { IUCNBadge } from './IUCNBadge';
 import AnimalFormModal from './AnimalFormModal';
 import MedicalRecords from '../medical/MedicalRecords';
 import { ProfileActionBar } from './ProfileActionBar';
-import { HusbandryLogs } from '../husbandry/HusbandryLogs';
+import HusbandryLogs from '../husbandry/HusbandryLogs';
 import { formatWeightDisplay } from '../../services/weightUtils';
 
 const SignGenerator = React.lazy(() => import('./SignGenerator'));
@@ -17,7 +17,7 @@ export interface Props {
 }
 
 export default function AnimalProfile({ animalId, onBack }: Props) {
-  const { id } = useParams<{ id: string }>();
+  const { id } = useParams({ strict: false });
   const effectiveId = animalId || id || '';
   const { animal, isLoading } = useAnimalProfileData(effectiveId);
   const [activeTab, setActiveTab] = useState<'profile' | 'medical' | 'husbandry'>('profile');
