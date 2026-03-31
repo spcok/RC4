@@ -180,7 +180,7 @@ const AnimalFormModal: React.FC<AnimalFormModalProps> = ({ isOpen, onClose, init
       misting_frequency: sanitizedData.misting_frequency,
       flying_weight_g: flightGrams > 0 ? flightGrams : null,
       winter_weight_g: winterGrams > 0 ? winterGrams : null,
-      weight_unit: weightUnit === 'lb' ? 'lbs_oz' : weightUnit,
+      weight_unit: (weightUnit === 'lb' ? 'lbs_oz' : weightUnit) as Animal['weight_unit'],
       updated_at: new Date().toISOString(),
       created_at: initialData?.created_at || new Date().toISOString(),
       is_deleted: false

@@ -146,12 +146,12 @@ export function useMedicalData() {
     quarantineRecords, 
     animals, 
     isLoading, 
-    addClinicalNote: addClinicalNoteMutation.mutate, 
-    updateClinicalNote: updateClinicalNoteMutation.mutate, 
-    addMarChart: addMarChartMutation.mutate, 
-    updateMarChart: updateMarChartMutation.mutate, 
-    signOffDose: (chartId: string, dateIso: string) => signOffDoseMutation.mutate({ chartId, dateIso }), 
-    addQuarantineRecord: addQuarantineRecordMutation.mutate, 
-    updateQuarantineRecord: updateQuarantineRecordMutation.mutate 
+    addClinicalNote: addClinicalNoteMutation.mutateAsync, 
+    updateClinicalNote: updateClinicalNoteMutation.mutateAsync, 
+    addMarChart: addMarChartMutation.mutateAsync, 
+    updateMarChart: updateMarChartMutation.mutateAsync, 
+    signOffDose: (chartId: string, dateIso: string) => signOffDoseMutation.mutateAsync({ chartId, dateIso }), 
+    addQuarantineRecord: addQuarantineRecordMutation.mutateAsync, 
+    updateQuarantineRecord: updateQuarantineRecordMutation.mutateAsync 
   };
 }

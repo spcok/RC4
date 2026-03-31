@@ -27,7 +27,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     sortOption,
     isOrderLocked,
     toggleOrderLock
-  } = useDashboardData(activeTab, viewDate);
+  } = useDashboardData(activeTab);
 
   const [isCreateAnimalModalOpen, setIsCreateAnimalModalOpen] = useState(false);
   const [isBentoMinimized, setIsBentoMinimized] = useState(false);

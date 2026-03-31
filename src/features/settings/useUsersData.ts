@@ -55,8 +55,12 @@ export function useUsersData() {
     users, 
     rolePermissions, 
     isLoading, 
-    deleteUser: deleteUserMutation.mutate, 
-    updateUser: (id: string, updates: Partial<User>) => updateUserMutation.mutate({ id, updates }), 
-    updateRolePermissions: (role: string, updates: Partial<RolePermissionConfig>) => updateRolePermissionsMutation.mutate({ role, updates }) 
+    deleteUser: deleteUserMutation.mutateAsync, 
+    updateUser: (id: string, updates: Partial<User>) => updateUserMutation.mutateAsync({ id, updates }), 
+    updateRolePermissions: (role: string, updates: Partial<RolePermissionConfig>) => updateRolePermissionsMutation.mutateAsync({ role, updates }),
+    refresh: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['role_permissions'] });
+    }
   };
 }

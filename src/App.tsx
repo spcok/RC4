@@ -1,4 +1,3 @@
-import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { queryClient, persister } from './lib/queryClient';
@@ -30,6 +29,8 @@ import Intelligence from './features/settings/tabs/Intelligence';
 import Changelog from './features/settings/tabs/Changelog';
 import Migration from './features/settings/tabs/Migration';
 
+import { Animal } from './types';
+
 export default function App() {
   return (
     <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
@@ -45,7 +46,7 @@ export default function App() {
               <Route path=":id" element={<AnimalProfile />} />
             </Route>
 
-            <Route path="husbandry" element={<HusbandryLogs animalId="dummy" animal={{} as any} />} />
+            <Route path="husbandry" element={<HusbandryLogs animalId="dummy" animal={{} as Animal} />} />
             <Route path="medical" element={<MedicalRecords />} />
             
             <Route path="logistics">

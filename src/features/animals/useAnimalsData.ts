@@ -1,40 +1,28 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
+import { Animal } from '../../types';
 
 export const useAnimalsData = () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [animals, setAnimals] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data, isLoading } = useQuery({
+    queryKey: ['animals'],
+    queryFn: async () => {
+      const { data: cloudData, error: fetchError } = await supabase
+        .from('animals')
+        .select('*');
+      
+      if (fetchError) throw fetchError;
+      return cloudData as Animal[];
+    },
+    // The select function allows us to cache the raw DB state, 
+    // but only hand active, clean data to the React components.
+    select: (rawAnimals) => {
+      return rawAnimals.filter(animal => !animal.is_deleted && !animal.archived);
+    }
+  });
 
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadData = async () => {
-      try {
-        // Online Primary: Fetch from Supabase
-        const { data, error } = await supabase.from('animals').select('*');
-        
-        if (error) throw error;
-
-        if (data && isMounted) {
-          // JS Filtering
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const activeAnimals = data.filter((a: any) => !a.is_deleted && !a.archived);
-          setAnimals(activeAnimals);
-          setIsLoading(false);
-        }
-      } catch (err) {
-        console.error("Supabase fetch failed:", err);
-        if (isMounted) setIsLoading(false);
-      }
-    };
-
-    loadData();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  return { animals, isLoading };
+  return { 
+    animals: data || [], 
+    isLoading, 
+    isOffline: false // TanStack handles offline natively now
+  };
 };
