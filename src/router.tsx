@@ -86,6 +86,7 @@ const animalProfileRoute = createRoute({
 
 const husbandryRoute = createRoute({
   getParentRoute: () => authRoute,
+  id: 'husbandry-layout',
 });
 
 const husbandryIndexRoute = createRoute({
@@ -120,15 +121,7 @@ const medicalRoute = createRoute({
 
 const logisticsRoute = createRoute({
   getParentRoute: () => authRoute,
-  path: '/logistics',
-});
-
-const logisticsIndexRoute = createRoute({
-  getParentRoute: () => logisticsRoute,
-  path: '/',
-  beforeLoad: () => {
-    throw redirect({ to: '/logistics/flights' });
-  },
+  id: 'logistics-layout',
 });
 
 const logisticsFlightsRoute = createRoute({
@@ -145,15 +138,7 @@ const logisticsMovementsRoute = createRoute({
 
 const staffRoute = createRoute({
   getParentRoute: () => authRoute,
-  path: '/staff',
-});
-
-const staffIndexRoute = createRoute({
-  getParentRoute: () => staffRoute,
-  path: '/',
-  beforeLoad: () => {
-    throw redirect({ to: '/staff/rota' });
-  },
+  id: 'staff-layout',
 });
 
 const staffRotaRoute = createRoute({
@@ -176,12 +161,12 @@ const staffHolidaysRoute = createRoute({
 
 const reportsRoute = createRoute({
   getParentRoute: () => authRoute,
-  path: '/reports',
+  id: 'reports-layout',
 });
 
 const reportsIndexRoute = createRoute({
   getParentRoute: () => reportsRoute,
-  path: '/',
+  path: '/reports',
   component: ReportsDashboard,
 });
 
@@ -199,6 +184,7 @@ const helpRoute = createRoute({
 
 const safetyRoute = createRoute({
   getParentRoute: () => authRoute,
+  id: 'safety-layout',
 });
 
 const safetyMaintenanceRoute = createRoute({
@@ -307,12 +293,10 @@ const routeTree = rootRoute.addChildren([
     ]),
     medicalRoute,
     logisticsRoute.addChildren([
-      logisticsIndexRoute,
       logisticsFlightsRoute,
       logisticsMovementsRoute,
     ]),
     staffRoute.addChildren([
-      staffIndexRoute,
       staffRotaRoute,
       staffTimesheetsRoute,
       staffHolidaysRoute,
