@@ -8,7 +8,7 @@ import LoginScreen from './features/auth/LoginScreen';
 import DashboardContainer from './features/dashboard/DashboardContainer';
 import AnimalsList from './features/animals/AnimalsList';
 import AnimalProfile from './features/animals/AnimalProfile';
-import HusbandryLogs from './features/husbandry/HusbandryLogs';
+import { HusbandryLogs } from './features/husbandry/HusbandryLogs';
 import MedicalRecords from './features/medical/MedicalRecords';
 import FlightRecords from './features/logistics/FlightRecords';
 import Movements from './features/logistics/Movements';
@@ -45,7 +45,7 @@ export default function App() {
               <Route path=":id" element={<AnimalProfile />} />
             </Route>
 
-            <Route path="husbandry" element={<HusbandryLogs />} />
+            <Route path="husbandry" element={<HusbandryLogs animalId="dummy" animal={{} as any} />} />
             <Route path="medical" element={<MedicalRecords />} />
             
             <Route path="logistics">

@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Task, User, UserRole, Animal } from '../../types';
-// import { bootCoreDatabase } from '../../lib/bootCoreDatabase';
+import { supabase } from '../../lib/supabase';
 
 const mockUsers: User[] = [
   { id: 'u1', email: 'john@example.com', name: 'John Doe', initials: 'JD', role: UserRole.VOLUNTEER },
@@ -12,46 +12,34 @@ export const useTaskData = () => {
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        let isMounted = true;
-        const subs: { unsubscribe: () => void }[] = [];
+  useEffect(() => {
+    let isMounted = true;
 
-        const loadData = async () => {
-            try {
-                // const db = await bootCoreDatabase();
-                if (true) { // Skip RxDB for now
-                    if (isMounted) setIsLoading(false);
-                    return;
-                }
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const [
+          { data: tasksData },
+          { data: animalsData }
+        ] = await Promise.all([
+          supabase.from('tasks').select('*'),
+          supabase.from('animals').select('*')
+        ]);
 
-                // Subscribe to tasks
-                const tasksSub = db.collections.tasks.find().$.subscribe(docs => {
-                    if (isMounted) {
-                        setTasks(docs.map(doc => doc.toJSON() as Task));
-                        setIsLoading(false);
-                    }
-                });
-                subs.push(tasksSub);
+        if (isMounted) {
+          setTasks((tasksData || []) as Task[]);
+          setAnimals((animalsData || []) as Animal[]);
+          setIsLoading(false);
+        }
+      } catch (err) {
+        console.error('Failed to load task data:', err);
+        if (isMounted) setIsLoading(false);
+      }
+    };
 
-                // Subscribe to animals
-                const animalsSub = db.collections.animals.find().$.subscribe(docs => {
-                    if (isMounted) setAnimals(docs.map(doc => doc.toJSON() as Animal));
-                });
-                subs.push(animalsSub);
-
-            } catch (err) {
-                console.error('Failed to load task data:', err);
-                if (isMounted) setIsLoading(false);
-            }
-        };
-
-        loadData();
-
-        return () => {
-            isMounted = false;
-            subs.forEach(sub => sub.unsubscribe());
-        };
-    }, []);
+    loadData();
+    return () => { isMounted = false; };
+  }, []);
 
   const [filter, setFilter] = useState<'assigned' | 'pending' | 'completed'>('pending');
   const [searchTerm, setSearchTerm] = useState('');
@@ -77,13 +65,16 @@ export const useTaskData = () => {
 
   const addTask = async (newTask: Omit<Task, 'id'>) => {
     try {
-      // const db = await bootCoreDatabase();
-      if (true) return; // Skip RxDB for now
-      await db.collections.tasks.insert({
+      const { error } = await supabase.from('tasks').insert({
+        ...newTask,
         id: crypto.randomUUID(),
         created_at: new Date().toISOString(),
-        ...newTask
       });
+      if (error) throw error;
+      
+      // Refresh tasks
+      const { data: tasksData } = await supabase.from('tasks').select('*');
+      if (tasksData) setTasks(tasksData as Task[]);
     } catch (err) {
       console.error('Failed to add task:', err);
     }
@@ -91,12 +82,12 @@ export const useTaskData = () => {
 
   const updateTask = async (id: string, updates: Partial<Task>) => {
     try {
-      // const db = await bootCoreDatabase();
-      if (true) return; // Skip RxDB for now
-      const doc = await db.collections.tasks.findOne({ selector: { id } }).exec();
-      if (doc) {
-        await doc.patch(updates);
-      }
+      const { error } = await supabase.from('tasks').update(updates).eq('id', id);
+      if (error) throw error;
+      
+      // Refresh tasks
+      const { data: tasksData } = await supabase.from('tasks').select('*');
+      if (tasksData) setTasks(tasksData as Task[]);
     } catch (err) {
       console.error('Failed to update task:', err);
     }
@@ -104,12 +95,12 @@ export const useTaskData = () => {
 
   const deleteTask = async (id: string) => {
     try {
-      // const db = await bootCoreDatabase();
-      if (true) return; // Skip RxDB for now
-      const doc = await db.collections.tasks.findOne({ selector: { id } }).exec();
-      if (doc) {
-        await doc.remove();
-      }
+      const { error } = await supabase.from('tasks').delete().eq('id', id);
+      if (error) throw error;
+      
+      // Refresh tasks
+      const { data: tasksData } = await supabase.from('tasks').select('*');
+      if (tasksData) setTasks(tasksData as Task[]);
     } catch (err) {
       console.error('Failed to delete task:', err);
     }
@@ -117,15 +108,15 @@ export const useTaskData = () => {
 
   const toggleTaskCompletion = async (task: Task) => {
     try {
-      // const db = await bootCoreDatabase();
-      if (true) return; // Skip RxDB for now
-      const doc = await db.collections.tasks.findOne({ selector: { id: task.id } }).exec();
-      if (doc) {
-        await doc.patch({ 
-          completed: !task.completed,
-          completed_at: !task.completed ? new Date().toISOString() : null
-        });
-      }
+      const { error } = await supabase.from('tasks').update({ 
+        completed: !task.completed,
+        completed_at: !task.completed ? new Date().toISOString() : null
+      }).eq('id', task.id);
+      if (error) throw error;
+      
+      // Refresh tasks
+      const { data: tasksData } = await supabase.from('tasks').select('*');
+      if (tasksData) setTasks(tasksData as Task[]);
     } catch (err) {
       console.error('Failed to toggle task completion:', err);
     }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { AnimalCategory, DailyRound, Animal, LogType, LogEntry } from '../../types';
-// import { bootCoreDatabase } from '../../lib/bootCoreDatabase';
+import { supabase } from '../../lib/supabase';
 
 interface AnimalCheckState {
     isAlive?: boolean;
@@ -26,37 +26,26 @@ export function useDailyRoundData(viewDate: string) {
 
     useEffect(() => {
         let isMounted = true;
-        const subs: { unsubscribe: () => void }[] = [];
 
         const loadData = async () => {
             try {
-                // const db = await bootCoreDatabase();
-                if (true) { // Skip RxDB for now
-                    if (isMounted) setIsLoading(false);
-                    return;
+                setIsLoading(true);
+                const [
+                    { data: animalsData },
+                    { data: logsData },
+                    { data: roundsData }
+                ] = await Promise.all([
+                    supabase.from('animals').select('*'),
+                    supabase.from('daily_logs').select('*'),
+                    supabase.from('daily_rounds').select('*')
+                ]);
+
+                if (isMounted) {
+                    setAllAnimals((animalsData || []) as Animal[]);
+                    setLiveLogs((logsData || []) as LogEntry[]);
+                    setLiveRounds((roundsData || []) as DailyRound[]);
+                    setIsLoading(false);
                 }
-
-                // Subscribe to animals
-                const animalsSub = db.collections.animals.find().$.subscribe(docs => {
-                    if (isMounted) setAllAnimals(docs.map(doc => doc.toJSON() as Animal));
-                });
-                subs.push(animalsSub);
-
-                // Subscribe to logs
-                const logsSub = db.collections.daily_logs.find().$.subscribe(docs => {
-                    if (isMounted) setLiveLogs(docs.map(doc => doc.toJSON() as LogEntry));
-                });
-                subs.push(logsSub);
-
-                // Subscribe to rounds
-                const roundsSub = db.collections.daily_rounds.find().$.subscribe(docs => {
-                    if (isMounted) {
-                        setLiveRounds(docs.map(doc => doc.toJSON() as DailyRound));
-                        setIsLoading(false);
-                    }
-                });
-                subs.push(roundsSub);
-
             } catch (error) {
                 console.error("Failed to load daily rounds data", error);
                 if (isMounted) setIsLoading(false);
@@ -64,14 +53,9 @@ export function useDailyRoundData(viewDate: string) {
         };
 
         loadData();
-
-        return () => {
-            isMounted = false;
-            subs.forEach(sub => sub.unsubscribe());
-        };
+        return () => { isMounted = false; };
     }, [viewDate]);
 
-    // ... Keep all standard functions identical to your existing file down to the return statement ...
     const currentRound = useMemo(() => liveRounds.find(r => r.shift === roundType && r.section === activeTab), [liveRounds, roundType, activeTab]);
     const isPastRound = currentRound?.status?.toLowerCase() === 'completed';
 
@@ -142,8 +126,6 @@ export function useDailyRoundData(viewDate: string) {
         if (!isComplete || !signingInitials) return;
         setIsSubmitting(true);
         try {
-            // const db = await bootCoreDatabase();
-            if (true) throw new Error("RxDB disabled"); // Skip RxDB for now
             const roundId = currentRound?.id || crypto.randomUUID();
             
             const roundData = {
@@ -159,11 +141,16 @@ export function useDailyRoundData(viewDate: string) {
             };
 
             if (currentRound) {
-                const doc = await db.collections.daily_rounds.findOne({ selector: { id: currentRound.id } }).exec();
-                if (doc) await doc.patch(roundData);
+                const { error } = await supabase.from('daily_rounds').update(roundData).eq('id', currentRound.id);
+                if (error) throw error;
             } else {
-                await db.collections.daily_rounds.insert(roundData);
+                const { error } = await supabase.from('daily_rounds').insert(roundData);
+                if (error) throw error;
             }
+            
+            // Refresh rounds
+            const { data: roundsData } = await supabase.from('daily_rounds').select('*');
+            if (roundsData) setLiveRounds(roundsData as DailyRound[]);
         } catch (error) {
             console.error('Failed to sign off round:', error);
         } finally {

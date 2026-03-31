@@ -26,6 +26,8 @@ const GlobalBugReporter: React.FC = () => {
     const payload = {
       id: reportId,
       created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      is_deleted: false,
       message: `[${severity.toUpperCase()}] ${title.trim()}\n\n${message.trim()}`,
       is_online: navigator.onLine,
       url: window.location.href,
@@ -47,8 +49,8 @@ const GlobalBugReporter: React.FC = () => {
         setIsOpen(false);
       }, 1500);
     } catch (err) {
-      console.error('Failed to submit bug report:', err);
-      setError('Failed to submit report. Please try again later.');
+      console.error('Failed to queue bug report:', err);
+      setError('Failed to queue report. Please try again later.');
     } finally {
       setIsSubmitting(false);
     }

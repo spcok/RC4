@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Subscription } from 'rxjs';
 import { Animal, AnimalCategory, LogType, LogEntry, Task } from '../../types';
-import { bootCoreDatabase } from '../../lib/bootCoreDatabase';
+import { supabase } from '../../lib/supabase';
 
 export interface EnhancedAnimal extends Animal {
   todayWeight?: LogEntry;
@@ -32,66 +31,39 @@ export function useDashboardData(activeTab: AnimalCategory | 'ARCHIVED', viewDat
 
   useEffect(() => {
     let isMounted = true;
-    const subs: Subscription[] = [];
 
     const loadData = async () => {
       try {
         setIsLoading(true);
-        const db = await bootCoreDatabase();
-        
-        if (!db || !db.collections || !db.collections.animals || !db.collections.archived_animals || !db.collections.daily_logs || !db.collections.tasks) {
-          if (isMounted) setIsLoading(false);
-          return;
+        const [
+          { data: animalsData },
+          { data: logsData },
+          { data: tasksData }
+        ] = await Promise.all([
+          supabase.from('animals').select('*'),
+          supabase.from('daily_logs').select('*'),
+          supabase.from('tasks').select('*')
+        ]);
+
+        if (isMounted) {
+          const allAnimals = animalsData || [];
+          setLiveAnimals(allAnimals.filter(a => !a.is_deleted && !a.archived) as Animal[]);
+          setArchivedAnimals(allAnimals.filter(a => !a.is_deleted && a.archived) as Animal[]);
+          setLogs((logsData || []).filter(l => !l.is_deleted) as LogEntry[]);
+          setTasks((tasksData || []).filter(t => !t.is_deleted) as Task[]);
+          setIsLoading(false);
         }
-        
-        // Animals
-        subs.push(db.collections.animals.find().$.subscribe(docs => {
-          if (isMounted) {
-            setLiveAnimals(docs.map(doc => doc.toJSON() as Animal));
-            setIsLoading(false);
-          }
-        }));
-
-        // Archived Animals
-        subs.push(db.collections.archived_animals.find().$.subscribe(docs => {
-          if (isMounted) {
-            setArchivedAnimals(docs.map(doc => doc.toJSON() as Animal));
-            setIsLoading(false);
-          }
-        }));
-
-        // Daily Logs
-        subs.push(db.collections.daily_logs.find().$.subscribe(docs => {
-          if (isMounted) {
-            setLogs(docs.map(doc => doc.toJSON() as LogEntry));
-            setIsLoading(false);
-          }
-        }));
-
-        // Tasks
-        subs.push(db.collections.tasks.find().$.subscribe(docs => {
-          if (isMounted) {
-            setTasks(docs.map(doc => doc.toJSON() as Task));
-            setIsLoading(false);
-          }
-        }));
-
-      } catch (err) {
-        console.error('Failed to load dashboard data:', err);
+      } catch (error) {
+        console.error('Failed to load dashboard data:', error);
         if (isMounted) setIsLoading(false);
       }
     };
 
     loadData();
-
-    return () => {
-      isMounted = false;
-      subs.forEach(sub => sub.unsubscribe());
-    };
+    return () => { isMounted = false; };
   }, [viewDate]);
 
   const allLogs = logs;
-  
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOption, setSortOption] = useState('alpha-asc');
   const [isOrderLocked, setIsOrderLocked] = useState(false);
@@ -108,126 +80,63 @@ export function useDashboardData(activeTab: AnimalCategory | 'ARCHIVED', viewDat
     const weighed = todayLogs.filter(l => l.log_type === LogType.WEIGHT).length;
     const fed = todayLogs.filter(l => l.log_type === LogType.FEED).length;
 
-    return {
-      total: filtered.length,
-      weighed,
-      fed,
-      animalData: new Map<string, AnimalStatsData>()
-    };
+    return { total: filtered.length, weighed, fed, animalData: new Map<string, AnimalStatsData>() };
   }, [liveAnimals, activeTab, logs]);
 
   const taskStats = useMemo(() => {
-    const pendingTasks = (tasks || [])
-      .filter(t => !t.completed && t.type !== 'HEALTH')
-      .map(t => ({ id: t.id, title: t.title, due_date: t.due_date }));
-      
-    const pendingHealth = (tasks || [])
-      .filter(t => !t.completed && t.type === 'HEALTH')
-      .map(t => ({ id: t.id, title: t.title, due_date: t.due_date }));
-
+    const pendingTasks = (tasks || []).filter(t => !t.completed && t.type !== 'HEALTH').map(t => ({ id: t.id, title: t.title, due_date: t.due_date }));
+    const pendingHealth = (tasks || []).filter(t => !t.completed && t.type === 'HEALTH').map(t => ({ id: t.id, title: t.title, due_date: t.due_date }));
     return { pendingTasks, pendingHealth };
   }, [tasks]);
 
   const filteredAnimals = useMemo(() => {
     let result = activeTab === 'ARCHIVED' ? [...archivedAnimals] : [...liveAnimals];
-    
-    if (activeTab && activeTab !== AnimalCategory.ALL && activeTab !== 'ARCHIVED') {
-      result = result.filter(a => a.category === activeTab);
-    }
-    
+    if (activeTab && activeTab !== AnimalCategory.ALL && activeTab !== 'ARCHIVED') result = result.filter(a => a.category === activeTab);
     if (searchTerm) {
       const lowerTerm = searchTerm.toLowerCase();
-      result = result.filter(a => 
-        a.name?.toLowerCase().includes(lowerTerm) || 
-        a.species?.toLowerCase().includes(lowerTerm) ||
-        (a.latin_name && a.latin_name.toLowerCase().includes(lowerTerm))
-      );
+      result = result.filter(a => a.name?.toLowerCase().includes(lowerTerm) || a.species?.toLowerCase().includes(lowerTerm) || (a.latin_name && a.latin_name.toLowerCase().includes(lowerTerm)));
     }
-    
-    if (sortOption === 'alpha-asc') {
-      result.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-    } else if (sortOption === 'alpha-desc') {
-      result.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
-    }
+    if (sortOption === 'alpha-asc') result.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    else if (sortOption === 'alpha-desc') result.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
 
     return result.map(animal => {
       try {
         const animalLogs = allLogs.filter(l => l.animal_id === animal.id);
         const todayLogs = logs.filter(l => l.animal_id === animal.id);
-        
         const todayWeight = todayLogs.find(l => l.log_type === LogType.WEIGHT);
         const todayFeed = todayLogs.find(l => l.log_type === LogType.FEED);
-        
-        const feedLogs = animalLogs
-          .filter(l => l.log_type === LogType.FEED)
-          .sort((a, b) => {
+        const feedLogs = animalLogs.filter(l => l.log_type === LogType.FEED).sort((a, b) => {
             const timeA = a.created_at ? new Date(a.created_at).getTime() : (a.log_date ? new Date(a.log_date).getTime() : 0);
             const timeB = b.created_at ? new Date(b.created_at).getTime() : (b.log_date ? new Date(b.log_date).getTime() : 0);
-            
             if (isNaN(timeA) || isNaN(timeB)) return 0;
             return timeB - timeA;
           });
-        
         const lastFed = feedLogs[0];
         let lastFedStr = '-';
         if (lastFed) {
-          const timePart = lastFed.created_at 
-            ? new Date(lastFed.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-            : '';
+          const timePart = lastFed.created_at ? new Date(lastFed.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
           lastFedStr = `${lastFed.value}${timePart ? ' ' + timePart : ''}`;
         }
-        
         const isBird = animal.category === AnimalCategory.OWLS || animal.category === AnimalCategory.RAPTORS;
-        const displayId = isBird 
-          ? (animal.ring_number || '-') 
-          : (animal.microchip_id || '-');
-  
-        const upcomingFeeds = (tasks || [])
-          .filter(t => (t.animal_id === animal.id) && (t.type === LogType.FEED) && !t.completed)
-          .sort((a, b) => {
+        const displayId = isBird ? (animal.ring_number || '-') : (animal.microchip_id || '-');
+        const upcomingFeeds = (tasks || []).filter(t => (t.animal_id === animal.id) && (t.type === LogType.FEED) && !t.completed).sort((a, b) => {
             const timeA = a.due_date ? new Date(a.due_date).getTime() : 0;
             const timeB = b.due_date ? new Date(b.due_date).getTime() : 0;
             if (isNaN(timeA) || isNaN(timeB)) return 0;
             return timeA - timeB;
           });
-  
         const nextFeed = upcomingFeeds[0];
         const nextFeedTask = nextFeed ? { due_date: nextFeed.due_date, notes: nextFeed.notes } : undefined;
   
-        return {
-          ...animal,
-          todayWeight,
-          todayFeed,
-          lastFedStr,
-          displayId,
-          nextFeedTask
-        };
-      } catch (err) {
-        console.error('Error enhancing animal data:', animal.id, err);
-        return {
-          ...animal,
-          lastFedStr: 'Error',
-          displayId: animal.id.slice(0, 8)
-        } as EnhancedAnimal;
+        return { ...animal, todayWeight, todayFeed, lastFedStr, displayId, nextFeedTask };
+      } catch {
+        return { ...animal, lastFedStr: 'Error', displayId: animal.id.slice(0, 8) } as EnhancedAnimal;
       }
     });
   }, [liveAnimals, archivedAnimals, activeTab, searchTerm, sortOption, logs, allLogs, tasks]);
 
   const toggleOrderLock = (locked: boolean) => setIsOrderLocked(locked);
-  const cycleSort = () => {
-    setSortOption(prev => prev === 'alpha-asc' ? 'alpha-desc' : prev === 'alpha-desc' ? 'custom' : 'alpha-asc');
-  };
+  const cycleSort = () => setSortOption(prev => prev === 'alpha-asc' ? 'alpha-desc' : prev === 'alpha-desc' ? 'custom' : 'alpha-asc');
 
-  return {
-    filteredAnimals,
-    animalStats,
-    taskStats,
-    isLoading,
-    searchTerm,
-    setSearchTerm,
-    sortOption,
-    cycleSort,
-    isOrderLocked,
-    toggleOrderLock
-  };
+  return { filteredAnimals, animalStats, taskStats, isLoading, searchTerm, setSearchTerm, sortOption, cycleSort, isOrderLocked, toggleOrderLock };
 }
