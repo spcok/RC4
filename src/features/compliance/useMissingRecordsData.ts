@@ -62,7 +62,7 @@ export function useMissingRecordsData() {
 
   const isLoading = isLoadingAnimals || isLoadingDailyLogs || isLoadingMedicalLogs;
 
-  const { alerts, complianceStats, categoryCompliance } = useMemo(() => {
+  const { alerts, complianceStats, categoryCompliance, husbandryStatus } = useMemo(() => {
     if (!animals.length) return { alerts: [], complianceStats: [], categoryCompliance: {} };
     
     const activeAnimals = animals.filter(a => !a.archived);
@@ -259,13 +259,35 @@ export function useMissingRecordsData() {
         health: Math.round(d.health.reduce((a, b) => a + b, 0) / d.health.length)};
     }
 
+    const husbandryStatus: HusbandryLogStatus[] = activeAnimals.map(animal => {
+      const animalLogs = dailyLogs.filter(l => l.animal_id === animal.id);
+      const weights = Array(7).fill(false);
+      const feeds = Array(7).fill(false);
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(now);
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+        const dayLogs = animalLogs.filter(log => log.log_date.startsWith(dateStr));
+        weights[i] = dayLogs.some(l => l.log_type === LogType.WEIGHT);
+        feeds[i] = dayLogs.some(l => l.log_type === LogType.FEED);
+      }
+      return {
+        animal_id: animal.id,
+        animal_name: animal.name,
+        animal_category: animal.category,
+        weights,
+        feeds
+      };
+    });
+
     return {
       alerts: allAlerts.sort((a, b) => {
         if (a.severity === b.severity) return b.days_overdue - a.days_overdue;
         return a.severity === 'High' ? -1 : 1;
       }),
       complianceStats: allComplianceStats,
-      categoryCompliance
+      categoryCompliance,
+      husbandryStatus
     };
   }, [animals, dailyLogs, medicalLogs]);
 
@@ -273,7 +295,7 @@ export function useMissingRecordsData() {
     alerts,
     complianceStats,
     categoryCompliance,
-    husbandryStatus: [], // Placeholder for now
+    husbandryStatus,
     isLoading
   };
 }

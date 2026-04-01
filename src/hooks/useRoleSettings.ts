@@ -1,44 +1,50 @@
-import { useState, useEffect } from 'react';
-import { UserRole, RolePermissionConfig } from '../types';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '../lib/supabase';
+import { RolePermissionConfig } from '../types';
 
 export const useRoleSettings = () => {
-  const [roles, setRoles] = useState<RolePermissionConfig[]>([]);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    let isMounted = true;
-    
+  const { data: roles, isLoading: isQueryLoading } = useQuery<RolePermissionConfig[]>({
+    queryKey: ['role_settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('role_permissions')
+        .select('*');
+      
+      if (error) throw error;
+      return data || [];
+    },
+  });
 
-    const loadData = async () => {
-      try {
-        console.log("☢️ [Zero Dawn] Role settings loading is neutralized.");
-        if (isMounted) {
-          setRoles([]);
-        }
-      } catch (err) {
-        console.error('Failed to load role settings:', err);
+  const mutation = useMutation({
+    mutationFn: async ({ role, permissionKey, newValue }: { role: string, permissionKey: string, newValue: boolean }) => {
+      const { data } = await supabase
+        .from('role_permissions')
+        .select('id')
+        .eq('role', role.toLowerCase())
+        .maybeSingle();
+
+      if (data) {
+        await supabase
+          .from('role_permissions')
+          .update({ [permissionKey]: newValue })
+          .eq('id', data.id);
+      } else {
+        await supabase
+          .from('role_permissions')
+          .insert({ role: role.toLowerCase(), [permissionKey]: newValue });
       }
-    };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['role_settings'] });
+      queryClient.invalidateQueries({ queryKey: ['permissions'] });
+    },
+  });
 
-    loadData();
-
-    return () => {
-      isMounted = false;
-      // // if (sub) sub.unsubscribe();
-    };
-  }, []);
-
-  useEffect(() => {
-    const ensureRoles = async () => {
-      console.log("☢️ [Zero Dawn] Role verification is neutralized.");
-    };
-
-    ensureRoles();
-  }, [roles]);
-
-  const handlePermissionChange = async (role: UserRole, permissionKey: keyof RolePermissionConfig, newValue: boolean) => {
-    console.log("☢️ [Zero Dawn] Permission change is neutralized.", { role, permissionKey, newValue });
-    alert("Database engine is neutralized. Settings cannot be saved.");
+  return {
+    roles: roles || [],
+    handlePermissionChange: mutation.mutate,
+    isLoading: isQueryLoading || mutation.isPending,
   };
-
-  return { roles, handlePermissionChange };
 };

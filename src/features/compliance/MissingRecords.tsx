@@ -28,7 +28,7 @@ const MissingRecords: React.FC = () => {
             health: Math.round(categories.reduce((a, b) => a + b.health, 0) / categories.length),
         };
     }
-    return categoryCompliance[selectedCategory] || { husbandry: 0, details: 0, health: 0 };
+    return (categoryCompliance as Record<string, { husbandry: number, details: number, health: number }>)[selectedCategory] || { husbandry: 0, details: 0, health: 0 };
   }, [categoryCompliance, selectedCategory]);
 
   const renderStatusDot = (score: number) => {

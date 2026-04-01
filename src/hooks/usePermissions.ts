@@ -53,7 +53,7 @@ export function usePermissions(): Record<string, boolean | string> & { isLoading
 
       if (error) {
         console.error('❌ [Permissions] Fetch failed:', error);
-        throw error;
+        return { ...lockedPermissions, role: currentRole };
       }
 
       if (!data) {
