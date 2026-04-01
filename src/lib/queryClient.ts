@@ -4,8 +4,14 @@ import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persist
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
+      staleTime: 0,
+      refetchOnMount: true,
+      refetchOnWindowFocus: true,
+      networkMode: 'offlineFirst',
       retry: 2,
+    },
+    mutations: {
+      networkMode: 'offlineFirst',
     },
   },
 });

@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '../../lib/supabase';
 import { OrgProfileSettings } from '../../types';
 
 const DEFAULT_SETTINGS: OrgProfileSettings = {
@@ -14,38 +15,42 @@ const DEFAULT_SETTINGS: OrgProfileSettings = {
 };
 
 export function useOrgSettings() {
-  const [settings, setSettings] = useState<OrgProfileSettings>(DEFAULT_SETTINGS);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    let isMounted = true;
-    
+  // Load Data
+  const { data: settings = DEFAULT_SETTINGS, isLoading } = useQuery({
+    queryKey: ['org_settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('organisations')
+        .select('*')
+        .single();
+      
+      if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "no rows returned"
+      return (data as OrgProfileSettings) || DEFAULT_SETTINGS;
+    },
+  });
 
-    const loadData = async () => {
-      try {
-        console.log("☢️ [Zero Dawn] Org settings loading is neutralized.");
-        if (isMounted) {
-          setSettings(DEFAULT_SETTINGS);
-          setIsLoading(false);
-        }
-      } catch (err) {
-        console.error('Failed to load org settings:', err);
-        if (isMounted) setIsLoading(false);
-      }
-    };
+  // Save Data
+  const mutation = useMutation({
+    mutationFn: async (newSettings: OrgProfileSettings) => {
+      const { data, error } = await supabase
+        .from('organisations')
+        .upsert(newSettings, { onConflict: 'id' })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['org_settings'] });
+    },
+  });
 
-    loadData();
-
-    return () => {
-      isMounted = false;
-      // if (sub) sub.unsubscribe();
-    };
-  }, []);
-
-  const saveSettings = async (newSettings: OrgProfileSettings) => {
-    console.log("☢️ [Zero Dawn] Org settings save is neutralized.", newSettings);
-    alert("Database engine is neutralized. Settings cannot be saved.");
+  return { 
+    settings, 
+    isLoading, 
+    saveSettings: mutation.mutateAsync 
   };
-
-  return { settings, isLoading, saveSettings };
 }
