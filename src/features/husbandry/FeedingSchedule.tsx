@@ -2,7 +2,7 @@ import React, { useState, useMemo, useTransition } from 'react';
 import { Animal, AnimalCategory, Task, LogType } from '../../types';
 import { CalendarClock, Plus, Calendar, Trash2, Filter, Utensils, RefreshCw, Loader2, History, ArrowRight, Copy } from 'lucide-react';
 import { getUKLocalDate } from '../../services/temporalService';
-import { useFoodOptions } from './hooks/useFoodOptions';
+import { useOperationalLists } from '../../hooks/useOperationalLists';
 import { useFeedingScheduleData } from './useFeedingScheduleData';
 import { useAnimalsData } from '../animals/useAnimalsData';
 import { useTaskData } from './useTaskData';
@@ -12,11 +12,11 @@ const FeedingSchedule: React.FC = () => {
   const { data: feedingLogs = [], isLoading: logsLoading } = useFeedingScheduleData(viewDate);
   const { animals, isLoading: animalsLoading } = useAnimalsData();
   const { tasks, addTask, deleteTask, isLoading: tasksLoading } = useTaskData();
-  const { data: foodOptions = [] } = useFoodOptions();
 
   const isLoading = animalsLoading || tasksLoading || logsLoading;
 
   const [selectedCategory, setSelectedCategory] = useState<AnimalCategory>(AnimalCategory.EXOTICS);
+  const { foodTypes: foodOptions } = useOperationalLists(selectedCategory);
   const [selectedAnimalId, setSelectedAnimalId] = useState('');
   const [foodType, setFoodType] = useState('');
   const [quantity, setQuantity] = useState('');

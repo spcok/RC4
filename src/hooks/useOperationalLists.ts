@@ -60,11 +60,13 @@ export function useOperationalLists(category: AnimalCategory = AnimalCategory.AL
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['operational_lists'] }),
   });
 
+  const normalize = (str: string) => str.toLowerCase().replace(/s$/, '');
+
   const foodTypes = lists
-    .filter(l => l.type === 'food_type' && (l.category === category || l.category === AnimalCategory.ALL))
+    .filter(l => l.type === 'food_type' && (normalize(l.category) === normalize(category) || l.category === AnimalCategory.ALL))
     .sort((a, b) => a.value.localeCompare(b.value));
   const feedMethods = lists
-    .filter(l => l.type === 'feed_method' && (l.category === category || l.category === AnimalCategory.ALL))
+    .filter(l => l.type === 'feed_method' && (normalize(l.category) === normalize(category) || l.category === AnimalCategory.ALL))
     .sort((a, b) => a.value.localeCompare(b.value));
   const eventTypes = lists
     .filter(l => l.type === 'event')
