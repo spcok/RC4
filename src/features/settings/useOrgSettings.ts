@@ -17,40 +17,43 @@ const DEFAULT_SETTINGS: OrgProfileSettings = {
 export function useOrgSettings() {
   const queryClient = useQueryClient();
 
-  // Load Data
   const { data: settings = DEFAULT_SETTINGS, isLoading } = useQuery({
     queryKey: ['org_settings'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('organisations')
         .select('*')
+        .eq('id', 'profile')
         .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') return DEFAULT_SETTINGS;
+        throw error;
+      }
       
-      if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "no rows returned"
       return (data as OrgProfileSettings) || DEFAULT_SETTINGS;
     },
   });
 
-  // Save Data
-  const mutation = useMutation({
+  const saveSettingsMutation = useMutation({
     mutationFn: async (newSettings: OrgProfileSettings) => {
       const { data, error } = await supabase
         .from('organisations')
-        .upsert(newSettings, { onConflict: 'id' })
+        .upsert({ ...newSettings, id: 'profile' })
         .select()
         .single();
-      
+
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['org_settings'] });
-    },
+    }
   });
 
   return { 
     settings, 
     isLoading, 
-    saveSettings: mutation.mutateAsync 
+    saveSettings: saveSettingsMutation.mutateAsync 
   };
 }

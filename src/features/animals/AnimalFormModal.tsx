@@ -149,7 +149,10 @@ const AnimalFormModal: React.FC<AnimalFormModalProps> = ({ isOpen, onClose, init
       ...data,
       parent_mob_id: (data.parent_mob_id === "" ? undefined : data.parent_mob_id) as string | undefined,
       sire_id: (data.sire_id === "" ? undefined : data.sire_id) as string | undefined,
-      dam_id: (data.dam_id === "" ? undefined : data.dam_id) as string | undefined};
+      dam_id: (data.dam_id === "" ? undefined : data.dam_id) as string | undefined,
+      dob: data.dob === "" ? null : data.dob,
+      acquisition_date: data.acquisition_date === "" ? null : data.acquisition_date
+    };
 
     // Establish the target ID early
     const targetId = initialData?.id || crypto.randomUUID();

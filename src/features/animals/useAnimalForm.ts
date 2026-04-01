@@ -55,7 +55,7 @@ interface UseAnimalFormProps {
   onClose: () => void;
 }
 
-export function useAnimalForm({ initialData, onClose }: UseAnimalFormProps) {
+export function useAnimalForm({ initialData }: Omit<UseAnimalFormProps, 'onClose'> & { initialData?: Animal | null }) {
   const [isAiPending, startAiTransition] = useTransition();
 
   const form = useForm<AnimalFormData>({
@@ -183,13 +183,8 @@ export function useAnimalForm({ initialData, onClose }: UseAnimalFormProps) {
   };
 
   const onSubmit = async (data: AnimalFormData) => {
-    try {
-      console.log("☢️ [Zero Dawn] Animal form submission in hook is neutralized.", data);
-      alert("Database engine is neutralized. Animal record cannot be saved.");
-      onClose();
-    } catch (error) {
-      console.error('Failed to save animal:', error);
-    }
+    // Submission is handled in AnimalFormModal.tsx
+    return data;
   };
 
   return {

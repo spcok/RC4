@@ -1,38 +1,54 @@
-import React, { ReactNode } from 'react';
-import { AnimalCategory, UserRole } from '../types';
-import { AppContext, AppContextType } from './Context';
+import React, { createContext, useContext, ReactNode } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '../lib/supabase';
+import { OrgProfileSettings } from '../types';
+
+interface AppContextType {
+  orgProfile: {
+    name: string;
+    logo_url: string;
+  };
+  isLoading: boolean;
+}
+
+const AppContext = createContext<AppContextType | undefined>(undefined);
+
+const DEFAULT_ORG_PROFILE = {
+  name: 'Kent Owl Academy',
+  logo_url: '',
+};
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [db, setDb] = React.useState<unknown>(null);
-
-  React.useEffect(() => {
-    setDb({});
-  }, []);
-
-  const activeShift = null;
+  const { data: settings, isLoading } = useQuery({
+    queryKey: ['org_settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('organisations')
+        .select('*')
+        .eq('id', 'profile')
+        .single();
+      
+      if (error && error.code !== 'PGRST116') throw error;
+      return (data as OrgProfileSettings) || null;
+    },
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+  });
 
   const value: AppContextType = {
-    db,
-    foodOptions: ['Day Old Chick', 'Mouse (S)', 'Mouse (M)', 'Mouse (L)', 'Rat (S)', 'Rat (M)', 'Quail', 'Rabbit'],
-    feedMethods: {
-      [AnimalCategory.OWLS]: ['Hand Fed', 'Bowl Fed', 'Tongs'],
-      [AnimalCategory.RAPTORS]: ['Hand Fed', 'Bowl Fed', 'Tongs'],
-      [AnimalCategory.MAMMALS]: ['Bowl Fed', 'Scatter Fed'],
-      [AnimalCategory.EXOTICS]: ['Tongs', 'Bowl Fed'],
-    },
-    eventTypes: ['Training', 'Public Display', 'Medical Treatment', 'Cleaning', 'Moulting'],
-    activeShift: activeShift || null,
-    clockIn: async () => { },
-    clockOut: async () => { },
     orgProfile: {
-      name: 'Kent Owl Academy',
-      logo_url: 'https://picsum.photos/seed/koa/200/200',
+      name: settings?.org_name || DEFAULT_ORG_PROFILE.name,
+      logo_url: settings?.logo_url || DEFAULT_ORG_PROFILE.logo_url,
     },
-    users: [
-      { id: '1', email: 'admin@koa.com', name: 'John Doe', role: UserRole.ADMIN, initials: 'JD' },
-      { id: '2', email: 'volunteer@koa.com', name: 'Jane Smith', role: UserRole.VOLUNTEER, initials: 'JS' }
-    ]
+    isLoading,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+};
+
+export const useAppData = () => {
+  const context = useContext(AppContext);
+  if (!context) {
+    throw new Error('useAppData must be used within an AppProvider');
+  }
+  return context;
 };
