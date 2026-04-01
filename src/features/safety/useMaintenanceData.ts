@@ -1,55 +1,53 @@
-import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '../../lib/supabase';
 import { MaintenanceLog } from '../../types';
 
-export function useMaintenanceData() {
-  const [logs, setLogs] = useState<MaintenanceLog[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export const useMaintenanceData = () => {
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    let isMounted = true;
-    
+  const { data: logs = [], isLoading } = useQuery({
+    queryKey: ['site_maintenance'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('site_maintenance')
+        .select('*')
+        .eq('is_deleted', false);
+      if (error) throw error;
+      return (data || []) as MaintenanceLog[];
+    }
+  });
 
-    const loadData = async () => {
-      try {
-        console.log("☢️ [Zero Dawn] Maintenance data loading is neutralized.");
-        if (isMounted) {
-          setLogs([]);
-          setIsLoading(false);
-        }
-      } catch (err) {
-        console.error('Failed to load maintenance data:', err);
-        if (isMounted) setIsLoading(false);
-      }
-    };
+  const addTaskMutation = useMutation({
+    mutationFn: async (newTask: Omit<MaintenanceLog, 'id'>) => {
+      const { data, error } = await supabase.from('site_maintenance').insert([newTask]).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['site_maintenance'] })
+  });
 
-    loadData();
+  const updateTaskMutation = useMutation({
+    mutationFn: async (task: MaintenanceLog) => {
+      const { data, error } = await supabase.from('site_maintenance').update(task).eq('id', task.id).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['site_maintenance'] })
+  });
 
-    return () => {
-      isMounted = false;
-      // if (sub) sub.unsubscribe();
-    };
-  }, []);
-
-  const addLog = async (log: Omit<MaintenanceLog, 'id'>) => {
-    console.log("☢️ [Zero Dawn] Add maintenance log is neutralized.", log);
-    alert("Database engine is neutralized. Log cannot be added.");
-  };
-
-  const updateLog = async (log: MaintenanceLog) => {
-    console.log("☢️ [Zero Dawn] Update maintenance log is neutralized.", log);
-    alert("Database engine is neutralized. Log cannot be updated.");
-  };
-
-  const deleteLog = async (id: string) => {
-    console.log("☢️ [Zero Dawn] Delete maintenance log is neutralized.", id);
-    alert("Database engine is neutralized. Log cannot be deleted.");
-  };
+  const deleteTaskMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('site_maintenance').update({ is_deleted: true }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['site_maintenance'] })
+  });
 
   return {
     logs,
     isLoading,
-    addLog,
-    updateLog,
-    deleteLog
+    addLog: addTaskMutation.mutateAsync,
+    updateLog: updateTaskMutation.mutateAsync,
+    deleteLog: deleteTaskMutation.mutateAsync
   };
-}
+};

@@ -17,7 +17,7 @@ export function useOperationalLists(category: AnimalCategory = AnimalCategory.AL
   });
 
   const addMutation = useMutation({
-    mutationFn: async ({ type, value, itemCategory }: { type: 'food' | 'method' | 'location' | 'event', value: string, itemCategory: AnimalCategory }) => {
+    mutationFn: async ({ type, value, itemCategory }: { type: 'food_type' | 'feed_method' | 'location' | 'event', value: string, itemCategory: AnimalCategory }) => {
       const { error } = await supabase.from('operational_lists').insert({
         id: crypto.randomUUID(),
         type,
@@ -61,10 +61,10 @@ export function useOperationalLists(category: AnimalCategory = AnimalCategory.AL
   });
 
   const foodTypes = lists
-    .filter(l => l.type === 'food' && (l.category === category || l.category === AnimalCategory.ALL))
+    .filter(l => l.type === 'food_type' && (l.category === category || l.category === AnimalCategory.ALL))
     .sort((a, b) => a.value.localeCompare(b.value));
   const feedMethods = lists
-    .filter(l => l.type === 'method' && (l.category === category || l.category === AnimalCategory.ALL))
+    .filter(l => l.type === 'feed_method' && (l.category === category || l.category === AnimalCategory.ALL))
     .sort((a, b) => a.value.localeCompare(b.value));
   const eventTypes = lists
     .filter(l => l.type === 'event')
@@ -78,7 +78,7 @@ export function useOperationalLists(category: AnimalCategory = AnimalCategory.AL
     feedMethods,
     eventTypes,
     locations,
-    addListItem: (type: 'food' | 'method' | 'location' | 'event', value: string, itemCategory: AnimalCategory = category) => addMutation.mutate({ type, value, itemCategory }),
+    addListItem: (type: 'food_type' | 'feed_method' | 'location' | 'event', value: string, itemCategory: AnimalCategory = category) => addMutation.mutate({ type, value, itemCategory }),
     updateListItem: (id: string, value: string) => updateMutation.mutate({ id, value }),
     removeListItem: (id: string) => removeMutation.mutate(id),
     isLoading

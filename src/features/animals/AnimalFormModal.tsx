@@ -24,7 +24,7 @@ const AnimalFormModal: React.FC<AnimalFormModalProps> = ({ isOpen, onClose, init
     form,
     handleImageUpload,
     isSubmitting,
-    errors} = useAnimalForm({ initialData, onClose });
+    errors} = useAnimalForm({ initialData });
 
   const { register, watch, setValue, getValues } = form;
   const { locations } = useOperationalLists();
@@ -147,11 +147,26 @@ const AnimalFormModal: React.FC<AnimalFormModalProps> = ({ isOpen, onClose, init
     // Scrub empty strings from UUID fields to prevent Postgres syntax errors
     const sanitizedData = {
       ...data,
-      parent_mob_id: (data.parent_mob_id === "" ? undefined : data.parent_mob_id) as string | undefined,
-      sire_id: (data.sire_id === "" ? undefined : data.sire_id) as string | undefined,
-      dam_id: (data.dam_id === "" ? undefined : data.dam_id) as string | undefined,
-      dob: data.dob === "" ? null : data.dob,
-      acquisition_date: data.acquisition_date === "" ? null : data.acquisition_date
+      parent_mob_id: (data.parent_mob_id === "" || data.parent_mob_id === null ? undefined : data.parent_mob_id) as string | undefined,
+      sire_id: (data.sire_id === "" || data.sire_id === null ? undefined : data.sire_id) as string | undefined,
+      dam_id: (data.dam_id === "" || data.dam_id === null ? undefined : data.dam_id) as string | undefined,
+      dob: (data.dob === "" || data.dob === null ? undefined : data.dob) as string | undefined,
+      acquisition_date: (data.acquisition_date === "" || data.acquisition_date === null ? undefined : data.acquisition_date) as string | undefined,
+      microchip_id: (data.microchip_id === "" || data.microchip_id === null ? undefined : data.microchip_id) as string | undefined,
+      ring_number: (data.ring_number === "" || data.ring_number === null ? undefined : data.ring_number) as string | undefined,
+      latin_name: (data.latin_name === "" || data.latin_name === null ? undefined : data.latin_name) as string | undefined,
+      description: (data.description === "" || data.description === null ? undefined : data.description) as string | undefined,
+      origin: (data.origin === "" || data.origin === null ? undefined : data.origin) as string | undefined,
+      misting_frequency: (data.misting_frequency === "" || data.misting_frequency === null ? undefined : data.misting_frequency) as string | undefined,
+      special_requirements: (data.special_requirements === "" || data.special_requirements === null ? undefined : data.special_requirements) as string | undefined,
+      target_day_temp_c: (data.target_day_temp_c === null ? undefined : data.target_day_temp_c) as number | undefined,
+      target_night_temp_c: (data.target_night_temp_c === null ? undefined : data.target_night_temp_c) as number | undefined,
+      target_humidity_min_percent: (data.target_humidity_min_percent === null ? undefined : data.target_humidity_min_percent) as number | undefined,
+      target_humidity_max_percent: (data.target_humidity_max_percent === null ? undefined : data.target_humidity_max_percent) as number | undefined,
+      water_tipping_temp: (data.water_tipping_temp === null ? undefined : data.water_tipping_temp) as number | undefined,
+      census_count: (data.census_count === null ? undefined : data.census_count) as number | undefined,
+      distribution_map_url: (data.distribution_map_url === "" || data.distribution_map_url === null ? undefined : data.distribution_map_url) as string | undefined,
+      acquisition_type: (data.acquisition_type === null ? undefined : data.acquisition_type) as Animal['acquisition_type'] | undefined,
     };
 
     // Establish the target ID early

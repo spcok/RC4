@@ -15,19 +15,29 @@ export const useIncidentData = () => {
         description: i.description,
         severity: i.severity,
         date: i.date,
-        reporterId: i.reporter_id,
-        createdAt: i.created_at
+        time: i.time,
+        type: i.type,
+        location: i.location,
+        status: i.status,
+        reported_by: i.reported_by,
+        reporter_id: i.reporter_id,
+        created_at: i.created_at
       })) as Incident[];
     }
   });
 
   const addIncidentMutation = useMutation({
-    mutationFn: async (incident: Omit<Incident, 'id'>) => {
+    mutationFn: async (incident: Omit<Incident, 'id' | 'created_at'>) => {
       const { data, error } = await supabase.from('incident_reports').insert([{
         description: incident.description,
         severity: incident.severity,
         date: incident.date,
-        reporter_id: incident.reporterId
+        time: incident.time,
+        type: incident.type,
+        location: incident.location,
+        status: incident.status,
+        reported_by: incident.reported_by,
+        reporter_id: incident.reporter_id
       }]).select().single();
       if (error) throw error;
       return data;

@@ -1,4 +1,4 @@
-import { Animal, LogEntry, LogType, InternalMovement, ExternalTransfer, Shift, ClinicalNote, MARChart, MaintenanceLog } from '../../../types';
+import { Animal, LogEntry, LogType, InternalMovement, Transfer, Shift, ClinicalNote, MARChart, MaintenanceLog } from '../../../types';
 import { safeJsonParse } from '../../../lib/jsonUtils';
 import type { Table, Paragraph, TableRow, TableCell } from 'docx';
 
@@ -311,7 +311,7 @@ export const generateInternalMovementsDocx = async (
 };
 
 export const generateExternalTransfersDocx = async (
-  transfers: ExternalTransfer[],
+  transfers: Transfer[],
   animals: Animal[],
   config?: ReportConfig
 ): Promise<Blob> => {
@@ -330,7 +330,7 @@ export const generateExternalTransfersDocx = async (
         new TableCell({ children: [new Paragraph(transfer.transfer_type || '--')] }),
         new TableCell({ children: [new Paragraph(transfer.institution || '--')] }),
         new TableCell({ children: [new Paragraph(transfer.notes || '--')] }),
-        new TableCell({ children: [new Paragraph('--')] }), // Initials not explicitly in ExternalTransfer, using placeholder
+        new TableCell({ children: [new Paragraph('--')] }), // Initials not explicitly in Transfer, using placeholder
       ],
     });
   });
@@ -838,16 +838,16 @@ export const generateInspectionPackage = async (
 
   // 1. Medical Logs Table
   const medicalRows = medicalLogs.map(log => {
-    const animal = animals.find(a => a.id === log.animal_id);
-    const integrityBadge = log.integrity_seal ? [new TextRun({ text: " ✓ Integrity Verified", color: "059669", size: 16, bold: true })] : [];
+    const animal = animals.find(a => a.id === log.animalId);
+    const integrityBadge = log.integritySeal ? [new TextRun({ text: " ✓ Integrity Verified", color: "059669", size: 16, bold: true })] : [];
     return new TableRow({
       children: [
         new TableCell({ children: [new Paragraph(log.date)] }),
         new TableCell({ children: [new Paragraph(animal?.name || '--')] }),
-        new TableCell({ children: [new Paragraph(log.note_type)] }),
+        new TableCell({ children: [new Paragraph(log.noteType)] }),
         new TableCell({ children: [new Paragraph(log.diagnosis || '--')] }),
-        new TableCell({ children: [new Paragraph(log.note_text || '--')] }),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun(log.staff_initials || '--'), ...integrityBadge] })] }),
+        new TableCell({ children: [new Paragraph(log.noteText || '--')] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun(log.staffInitials || '--'), ...integrityBadge] })] }),
       ]
     });
   });
@@ -878,11 +878,11 @@ export const generateInspectionPackage = async (
 
   // 2. MAR Charts Table
   const marRows = marCharts.map(mar => {
-    const animal = animals.find(a => a.id === mar.animal_id);
-    const integrityBadge = mar.integrity_seal ? [new TextRun({ text: " ✓ Integrity Verified", color: "059669", size: 16, bold: true })] : [];
+    const animal = animals.find(a => a.id === mar.animalId);
+    const integrityBadge = mar.integritySeal ? [new TextRun({ text: " ✓ Integrity Verified", color: "059669", size: 16, bold: true })] : [];
     return new TableRow({
       children: [
-        new TableCell({ children: [new Paragraph(mar.start_date)] }),
+        new TableCell({ children: [new Paragraph(mar.startDate)] }),
         new TableCell({ children: [new Paragraph(animal?.name || '--')] }),
         new TableCell({ children: [new Paragraph(mar.medication)] }),
         new TableCell({ children: [new Paragraph(mar.dosage)] }),

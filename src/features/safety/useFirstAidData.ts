@@ -13,21 +13,29 @@ export function useFirstAidData() {
       return (data || []).map(l => ({
         id: l.id,
         date: l.date,
-        staffId: l.staff_id,
-        incidentDescription: l.incident_description,
-        treatmentProvided: l.treatment_provided,
-        createdAt: l.created_at
+        staff_id: l.staff_id,
+        incident_description: l.incident_description,
+        treatment_provided: l.treatment_provided,
+        created_at: l.created_at,
+        person_name: l.person_name,
+        type: l.type,
+        location: l.location,
+        outcome: l.outcome
       })) as FirstAidLog[];
     }
   });
 
   const addFirstAidMutation = useMutation({
-    mutationFn: async (log: Omit<FirstAidLog, 'id'>) => {
+    mutationFn: async (log: Omit<FirstAidLog, 'id' | 'created_at'>) => {
       const { data, error } = await supabase.from('first_aid_logs').insert([{
         date: log.date,
-        staff_id: log.staffId,
-        incident_description: log.incidentDescription,
-        treatment_provided: log.treatmentProvided
+        staff_id: log.staff_id,
+        incident_description: log.incident_description,
+        treatment_provided: log.treatment_provided,
+        person_name: log.person_name,
+        type: log.type,
+        location: log.location,
+        outcome: log.outcome
       }]).select().single();
       if (error) throw error;
       return data;

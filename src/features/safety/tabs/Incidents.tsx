@@ -11,14 +11,13 @@ const Incidents: React.FC = () => {
   const { 
     incidents, 
     isLoading, 
-    searchTerm, 
-    setSearchTerm, 
-    filterSeverity, 
-    setFilterSeverity, 
     addIncident, 
     deleteIncident 
   } = useIncidentData();
   const { timesheets } = useTimesheetData();
+  
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterSeverity, setFilterSeverity] = useState('ALL');
   
   const currentlyClockedIn = React.useMemo(() => {
     return timesheets
@@ -59,7 +58,8 @@ const Incidents: React.FC = () => {
       e.preventDefault();
       
       const incidentData = {
-          date: new Date(date), 
+          id: crypto.randomUUID(),
+          date: date, 
           time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }), 
           type: type, 
           severity, 
@@ -67,6 +67,8 @@ const Incidents: React.FC = () => {
           location: location || 'Site Wide', 
           status: 'Open', 
           reported_by: 'SYS',
+          reporter_id: 'SYS',
+          created_at: new Date().toISOString()
       };
 
       try {

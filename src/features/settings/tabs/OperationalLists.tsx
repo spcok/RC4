@@ -30,7 +30,7 @@ const OperationalLists: React.FC = () => {
     removeListItem 
   } = useOperationalLists(listSection);
 
-  const handleAdd = async (type: 'food' | 'method' | 'location' | 'event', category?: AnimalCategory) => {
+  const handleAdd = async (type: 'food_type' | 'feed_method' | 'location' | 'event', category?: AnimalCategory) => {
     const val = newValue[type];
     if (!val) return;
     await addListItem(type, val, category);
@@ -48,7 +48,7 @@ const OperationalLists: React.FC = () => {
     setEditValue(value);
   };
 
-  const renderList = (items: OperationalList[], type: 'food' | 'method' | 'location' | 'event', title: string, icon: React.ReactNode, category?: AnimalCategory) => (
+  const renderList = (items: OperationalList[], type: 'food_type' | 'feed_method' | 'location' | 'event', title: string, icon: React.ReactNode, category?: AnimalCategory) => (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-full">
       <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -156,8 +156,8 @@ const OperationalLists: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {renderList(foodTypes, 'food', 'Food Types', <Utensils size={18} />, listSection)}
-        {renderList(feedMethods, 'method', 'Feed Methods', <Activity size={18} />, listSection)}
+        {renderList(foodTypes, 'food_type', 'Food Types', <Utensils size={18} />, listSection)}
+        {renderList(feedMethods, 'feed_method', 'Feed Methods', <Activity size={18} />, listSection)}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

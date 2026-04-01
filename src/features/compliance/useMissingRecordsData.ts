@@ -98,9 +98,9 @@ export function useMissingRecordsData() {
       const husbandryScore = Math.round(((weightsPresent.filter(Boolean).length + feedsPresent.filter(Boolean).length) / 14) * 100);
 
       // Health Scoring
-      const animalMedicalLogs = medicalLogs.filter(l => l.animal_id === animal.id);
+      const animalMedicalLogs = medicalLogs.filter(l => l.animalId === animal.id);
       const checkupLogs = animalMedicalLogs
-        .filter(log => log.note_type.toLowerCase().includes('checkup') || log.note_type.toLowerCase().includes('medical'))
+        .filter(log => log.noteType.toLowerCase().includes('checkup') || log.noteType.toLowerCase().includes('medical'))
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       
       const latestCheckup = checkupLogs[0];

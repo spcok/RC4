@@ -8,7 +8,7 @@ export const generateMarChartDocx = async (chart: MARChart) => {
     sections: [
       {
         children: [
-          new Paragraph({ text: `MAR Chart: ${chart.animal_name}`, heading: 'Heading1' }),
+          new Paragraph({ text: `MAR Chart: ${chart.animalName}`, heading: 'Heading1' }),
           new Paragraph({ text: `Medication: ${chart.medication}` }),
           new Paragraph({ text: `Dosage: ${chart.dosage}` }),
           new Paragraph({ text: `Frequency: ${chart.frequency}` }),
@@ -41,5 +41,5 @@ export const generateMarChartDocx = async (chart: MARChart) => {
   });
 
   const blob = await Packer.toBlob(doc);
-  saveAs(blob, `MAR_Chart_${chart.animal_name}_${chart.medication}.docx`);
+  saveAs(blob, `MAR_Chart_${chart.animalName}_${chart.medication}.docx`);
 };

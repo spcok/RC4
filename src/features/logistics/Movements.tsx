@@ -7,10 +7,10 @@ import AddTransferModal from './AddTransferModal';
 import { usePermissions } from '../../hooks/usePermissions';
 import { DataTable } from '../../components/ui/DataTable';
 import { createColumnHelper, ColumnDef } from '@tanstack/react-table';
-import { InternalMovement, ExternalTransfer } from '../../types';
+import { InternalMovement, Transfer } from '../../types';
 
 const movementColumnHelper = createColumnHelper<InternalMovement>();
-const transferColumnHelper = createColumnHelper<ExternalTransfer>();
+const transferColumnHelper = createColumnHelper<Transfer>();
 
 export default function Movements() {
   const { view_movements } = usePermissions();
@@ -132,7 +132,7 @@ export default function Movements() {
         );
       }
     })
-  ] as unknown as ColumnDef<ExternalTransfer, unknown>[], []);
+  ] as unknown as ColumnDef<Transfer, unknown>[], []);
 
   if (!view_movements) {
     return (

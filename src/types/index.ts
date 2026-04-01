@@ -141,12 +141,12 @@ export enum EntityType {
 export interface Animal {
   id: string;
 
-  entity_type?: EntityType;
+  entity_type?: EntityType | null;
   parent_mob_id?: string;
-  census_count?: number;
+  census_count?: number | null;
   name: string;
   species: string;
-  latin_name?: string;
+  latin_name?: string | null;
   category: AnimalCategory;
   location: string;
   image_url?: string;
@@ -430,7 +430,7 @@ export interface InternalMovement {
   is_deleted?: boolean;
 }
 
-export interface ExternalTransfer {
+export interface Transfer {
   id: string;
 
   animal_id: string;
@@ -505,13 +505,16 @@ export interface FirstAidLog {
   id: string;
 
   date: string;
-  time: string;
+  staff_id: string;
+  incident_description: string;
+  treatment_provided: string;
+  created_at: string;
+  
   person_name: string;
   type: 'Injury' | 'Illness' | 'Near Miss';
-  description: string;
-  treatment: string;
   location: string;
   outcome: 'Returned to Work' | 'Restricted Duties' | 'Monitoring' | 'Sent Home' | 'GP Visit' | 'Hospital' | 'Ambulance Called' | 'Refused Treatment' | 'None';
+  
   updated_at?: string;
   is_deleted?: boolean;
 }
@@ -548,7 +551,7 @@ export interface DailyRound {
 export interface Incident {
   id: string;
 
-  date: Date;
+  date: string;
   time: string;
   type: IncidentType;
   severity: IncidentSeverity;
@@ -556,6 +559,9 @@ export interface Incident {
   location: string;
   status: string;
   reported_by: string;
+  
+  reporter_id: string;
+  created_at: string;
   updated_at?: string;
   is_deleted?: boolean;
 }
@@ -577,7 +583,7 @@ export interface SyncQueueItem {
 export interface OperationalList {
   id: string;
 
-  type: 'food' | 'method' | 'location' | 'event';
+  type: 'food_type' | 'feed_method' | 'location' | 'event';
   category: AnimalCategory;
   value: string;
   is_deleted?: boolean;

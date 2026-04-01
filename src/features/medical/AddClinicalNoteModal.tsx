@@ -53,7 +53,7 @@ export const AddClinicalNoteModal: React.FC<Props> = ({ isOpen, onClose, onSave,
   // 3. THE OBSERVER PATTERN: Watch the selected animal and derive the unit
   const selectedAnimalId = useWatch({ control, name: 'animalId' });
   const selectedAnimal = animals?.find(a => a.id === selectedAnimalId);
-  const targetUnit = selectedAnimal?.weightUnit === 'lbs_oz' ? 'lb' : (selectedAnimal?.weightUnit === 'oz' ? 'oz' : 'g');
+  const targetUnit = selectedAnimal?.weight_unit === 'lbs_oz' ? 'lb' : (selectedAnimal?.weight_unit === 'oz' ? 'oz' : 'g');
   
   // 4. ABSOLUTE STATE ISOLATION: Manual weight tracking independent of RHF
   const [weightValues, setWeightValues] = useState({ g: 0, lb: 0, oz: 0, eighths: 0 });
@@ -128,7 +128,7 @@ export const AddClinicalNoteModal: React.FC<Props> = ({ isOpen, onClose, onSave,
         ...data, 
         weightGrams: totalGrams > 0 ? totalGrams : undefined,
         weight: totalGrams > 0 ? totalGrams : undefined,
-        weightUnit: selectedAnimal?.weightUnit || 'g',
+        weightUnit: selectedAnimal?.weight_unit || 'g',
         attachmentUrl,
         thumbnailUrl,
         integritySeal: integritySeal

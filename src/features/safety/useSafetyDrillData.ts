@@ -1,49 +1,43 @@
-import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '../../lib/supabase';
 import { SafetyDrill } from '../../types';
 
-export function useSafetyDrillData() {
-  const [drills, setDrills] = useState<SafetyDrill[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export const useSafetyDrillData = () => {
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    let isMounted = true;
-    
+  const { data: drills = [], isLoading } = useQuery({
+    queryKey: ['safety_drills'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('safety_drills')
+        .select('*')
+        .eq('is_deleted', false);
+      if (error) throw error;
+      return (data || []) as SafetyDrill[];
+    }
+  });
 
-    const loadData = async () => {
-      try {
-        console.log("☢️ [Zero Dawn] Safety drill data loading is neutralized.");
-        if (isMounted) {
-          setDrills([]);
-          setIsLoading(false);
-        }
-      } catch (err) {
-        console.error('Failed to load safety drill data:', err);
-        if (isMounted) setIsLoading(false);
-      }
-    };
+  const logDrillMutation = useMutation({
+    mutationFn: async (newDrill: Omit<SafetyDrill, 'id'>) => {
+      const { data, error } = await supabase.from('safety_drills').insert([newDrill]).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['safety_drills'] })
+  });
 
-    loadData();
-
-    return () => {
-      isMounted = false;
-      // if (sub) sub.unsubscribe();
-    };
-  }, []);
-
-  const addDrillLog = async (drill: Omit<SafetyDrill, 'id'>) => {
-    console.log("☢️ [Zero Dawn] Add safety drill is neutralized.", drill);
-    alert("Database engine is neutralized. Drill cannot be added.");
-  };
-
-  const deleteDrillLog = async (id: string) => {
-    console.log("☢️ [Zero Dawn] Delete safety drill is neutralized.", id);
-    alert("Database engine is neutralized. Drill cannot be deleted.");
-  };
+  const deleteDrillMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('safety_drills').update({ is_deleted: true }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['safety_drills'] })
+  });
 
   return {
     drills,
     isLoading,
-    addDrillLog,
-    deleteDrillLog
+    addDrillLog: logDrillMutation.mutateAsync,
+    deleteDrillLog: deleteDrillMutation.mutateAsync
   };
-}
+};

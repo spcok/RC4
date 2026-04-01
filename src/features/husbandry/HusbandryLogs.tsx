@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { Plus, Loader2, Edit2, Trash2 } from 'lucide-react';
-import { createColumnHelper, ColumnDef } from '@tanstack/react-table';
+import { ColumnDef } from '@tanstack/react-table';
 import AddEntryModal from './AddEntryModal';
 import { Animal, LogType, LogEntry } from '../../types';
 import { formatWeightDisplay, parseLegacyWeightToGrams } from '../../services/weightUtils';
@@ -15,8 +15,6 @@ interface HusbandryLogsProps {
 }
 
 const validHusbandryTypes = ['FEED', 'WEIGHT', 'FLIGHT', 'TRAINING', 'TEMPERATURE'];
-
-const columnHelper = createColumnHelper<LogEntry>();
 
 const HusbandryLogs: React.FC<HusbandryLogsProps> = ({ animalId, weightUnit = 'g', animal }) => {
   const effectiveAnimalId = animalId || animal?.id;
@@ -85,15 +83,16 @@ const HusbandryLogs: React.FC<HusbandryLogsProps> = ({ animalId, weightUnit = 'g
   };
 
   const columns: ColumnDef<LogEntry>[] = useMemo(() => [
-    columnHelper.accessor(row => row.log_date || row.created_at, {
-      id: 'date',
+    {
+      accessorKey: 'log_date',
       header: 'Date',
       cell: info => {
         const val = info.getValue() as string | undefined;
         return val ? new Date(val).toLocaleDateString() : '—';
       }
-    }),
-    columnHelper.accessor('log_type', {
+    },
+    {
+      accessorKey: 'log_type',
       header: 'Type',
       cell: info => {
         const type = (info.getValue() as string) || '';
@@ -103,18 +102,18 @@ const HusbandryLogs: React.FC<HusbandryLogsProps> = ({ animalId, weightUnit = 'g
           </span>
         );
       }
-    }),
-    columnHelper.accessor(row => row, {
-      id: 'value',
+    },
+    {
+      accessorKey: 'value',
       header: 'Value',
       cell: info => {
-        const log = info.getValue() as LogEntry;
+        const log = info.row.original;
         const displayValue = renderLogValue(log);
         return <span className="font-bold text-slate-900">{displayValue}</span>;
       }
-    }),
-    columnHelper.accessor('id', {
-      id: 'actions',
+    },
+    {
+      accessorKey: 'id',
       header: 'Actions',
       cell: info => {
         const log = info.row.original;
@@ -137,7 +136,7 @@ const HusbandryLogs: React.FC<HusbandryLogsProps> = ({ animalId, weightUnit = 'g
           </div>
         );
       }
-    })
+    }
   ], [renderLogValue]);
 
   return (

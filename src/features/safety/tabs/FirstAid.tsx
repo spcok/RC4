@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { usePermissions } from '../../../hooks/usePermissions';
 import { useFirstAidData } from '../useFirstAidData';
 import { FirstAidLog } from '../../../types';
-import { Plus, MapPin, Clock, X, Trash2, Loader2, Search, Lock } from 'lucide-react';
+import { Plus, MapPin, X, Trash2, Loader2, Search, Lock } from 'lucide-react';
 
 const FirstAid: React.FC = () => {
   const { view_first_aid } = usePermissions();
@@ -14,14 +14,14 @@ const FirstAid: React.FC = () => {
   const [person_name, setPersonName] = useState('');
   const [type, setType] = useState<'Injury' | 'Illness' | 'Near Miss'>('Injury');
   const [location, setLocation] = useState('');
-  const [description, setDescription] = useState('');
-  const [treatment, setTreatment] = useState('');
+  const [incident_description, setIncidentDescription] = useState('');
+  const [treatment_provided, setTreatmentProvided] = useState('');
   const [outcome, setOutcome] = useState<FirstAidLog['outcome']>('Returned to Work');
 
   const filteredLogs = useMemo(() => {
     return logs.filter(log => 
       log.person_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.description.toLowerCase().includes(searchTerm.toLowerCase())
+      log.incident_description.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [logs, searchTerm]);
 
@@ -40,17 +40,22 @@ const FirstAid: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const date = new Date().toISOString().split('T')[0];
-    const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
     
     await addFirstAid({
-      date, time, person_name, type, description, treatment,
-      location, outcome
+      date, 
+      staff_id: person_name,
+      person_name,
+      type,
+      incident_description,
+      treatment_provided,
+      location,
+      outcome
     });
     setIsModalOpen(false);
     // Reset form
     setPersonName('');
-    setDescription('');
-    setTreatment('');
+    setIncidentDescription('');
+    setTreatmentProvided('');
     setLocation('');
   };
 
@@ -105,15 +110,14 @@ const FirstAid: React.FC = () => {
                 <tr key={log.id} className="bg-white hover:bg-slate-50 transition-all group">
                   <td className="px-3 py-2 whitespace-nowrap">
                     <div className="font-bold text-slate-900 text-sm">{new Date(log.date).toLocaleDateString('en-GB')}</div>
-                    <div className="text-xs font-medium text-slate-500 mt-0.5 flex items-center gap-0.5"><Clock size={12}/> {log.time}</div>
                   </td>
                   <td className="px-3 py-2 whitespace-nowrap">
                     <span className="text-sm font-bold text-slate-900 block mb-0.5">{log.person_name}</span>
                     <div className="flex items-center gap-0.5 text-xs font-medium text-slate-500"><MapPin size={12}/> {log.location}</div>
                   </td>
                   <td className="px-3 py-2 whitespace-nowrap">
-                    <p className="text-xs text-slate-600 font-medium leading-relaxed max-w-sm line-clamp-2 italic border-l-2 border-slate-100 pl-2">"{log.description}"</p>
-                    <div className="text-xs font-bold text-emerald-600 mt-0.5">ADMINISTERED: {log.treatment || 'Observation Only'}</div>
+                    <p className="text-xs text-slate-600 font-medium leading-relaxed max-w-sm line-clamp-2 italic border-l-2 border-slate-100 pl-2">"{log.incident_description}"</p>
+                    <div className="text-xs font-bold text-emerald-600 mt-0.5">ADMINISTERED: {log.treatment_provided || 'Observation Only'}</div>
                   </td>
                   <td className="px-3 py-2 whitespace-nowrap">
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border ${
@@ -173,9 +177,9 @@ const FirstAid: React.FC = () => {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div><label className="block text-xs font-bold text-slate-700 mb-0.5">Event Location</label><input type="text" value={location} onChange={e => setLocation(e.target.value)} className={inputClass} placeholder="e.g. Flight Arena"/></div>
-                <div><label className="block text-xs font-bold text-slate-700 mb-0.5">Treatment Action</label><input type="text" value={treatment} onChange={e => setTreatment(e.target.value)} className={inputClass} placeholder="e.g. Wound Cleaned"/></div>
+                <div><label className="block text-xs font-bold text-slate-700 mb-0.5">Treatment Action</label><input type="text" value={treatment_provided} onChange={e => setTreatmentProvided(e.target.value)} className={inputClass} placeholder="e.g. Wound Cleaned"/></div>
               </div>
-              <div><label className="block text-xs font-bold text-slate-700 mb-0.5">Full Incident Narrative</label><textarea required rows={2} value={description} onChange={e => setDescription(e.target.value)} className={`${inputClass} resize-none h-16`} placeholder="Detailed account of what happened..."/></div>
+              <div><label className="block text-xs font-bold text-slate-700 mb-0.5">Full Incident Narrative</label><textarea required rows={2} value={incident_description} onChange={e => setIncidentDescription(e.target.value)} className={`${inputClass} resize-none h-16`} placeholder="Detailed account of what happened..."/></div>
               <button type="submit" className="w-full py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors shadow-sm">Commit to Registry</button>
             </form>
           </div>
