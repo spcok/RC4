@@ -6,6 +6,7 @@ import {
     Heart, AlertTriangle, ShieldCheck, PenTool, Loader2, Calendar as CalendarIcon,
     Info, Snowflake, ChevronDown, ChevronRight, CornerDownRight, ChevronLeft
 } from 'lucide-react';
+import { getUKLocalDate } from '../../services/temporalService';
 import { useDailyRoundData } from './useDailyRoundData';
 
 interface DailyRoundsProps {
@@ -17,7 +18,7 @@ import { usePermissions } from '../../hooks/usePermissions';
 const DailyRounds: React.FC<DailyRoundsProps> = () => {
     const { view_daily_rounds } = usePermissions();
     const { isSidebarCollapsed } = useLayoutContext();
-    const [viewDate, setViewDate] = useState(new Date().toISOString().split('T')[0]);
+    const [viewDate, setViewDate] = useState(getUKLocalDate());
     
     const handlePrevDay = () => {
         const d = new Date(viewDate);
@@ -32,7 +33,7 @@ const DailyRounds: React.FC<DailyRoundsProps> = () => {
     };
 
     const handleToday = () => {
-        setViewDate(new Date().toISOString().split('T')[0]);
+        setViewDate(getUKLocalDate());
     };
 
     const [expandedMobs, setExpandedMobs] = useState<Set<string>>(new Set());
@@ -160,7 +161,7 @@ const DailyRounds: React.FC<DailyRoundsProps> = () => {
 
                               <button 
                                 onClick={handleToday}
-                                className={`ml-1 px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-colors ${viewDate === new Date().toISOString().split('T')[0] ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-200'}`}
+                                className={`ml-1 px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-colors ${viewDate === getUKLocalDate() ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-200'}`}
                               >
                                 Today
                               </button>

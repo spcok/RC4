@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Users, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Animal, LogEntry, LogType, AnimalCategory, EntityType } from '../../types';
+import { getUKLocalDate } from '../../services/temporalService';
 import { useDailyLogData } from './useDailyLogData';
 import { useWeatherSync } from './hooks/useWeatherSync';
 import AddEntryModal from './AddEntryModal';
@@ -10,7 +11,7 @@ import { MammalRow } from './components/MammalRow';
 import { ExoticRow } from './components/ExoticRow';
 
 const DailyLog: React.FC = () => {
-  const [viewDate, setViewDate] = useState(new Date().toISOString().split('T')[0]);
+  const [viewDate, setViewDate] = useState(getUKLocalDate());
   
   const handlePrevDay = () => {
     const d = new Date(viewDate);
@@ -25,7 +26,7 @@ const DailyLog: React.FC = () => {
   };
 
   const handleToday = () => {
-    setViewDate(new Date().toISOString().split('T')[0]);
+    setViewDate(getUKLocalDate());
   };
 
   const [activeCategory, setActiveCategory] = useState<AnimalCategory>(AnimalCategory.OWLS);
@@ -136,7 +137,7 @@ const DailyLog: React.FC = () => {
 
               <button 
                 onClick={handleToday}
-                className={`ml-1 px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-colors ${viewDate === new Date().toISOString().split('T')[0] ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-200'}`}
+                className={`ml-1 px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-colors ${viewDate === getUKLocalDate() ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-200'}`}
               >
                 Today
               </button>

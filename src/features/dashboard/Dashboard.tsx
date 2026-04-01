@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { AnimalCategory } from '../../types';
 import { Heart, AlertCircle, Plus, Calendar, Scale, Drumstick, ArrowUpDown, Loader2, ClipboardCheck, CheckCircle, ChevronUp, ChevronDown, ChevronRight, Lock, Unlock } from 'lucide-react';
-import { formatWeightDisplay } from '../../services/weightUtils';
+import { formatWeightDisplay, parseLegacyWeightToGrams } from '../../services/weightUtils';
 import AnimalFormModal from '../animals/AnimalFormModal';
 import { useDashboardData, EnhancedAnimal } from './useDashboardData';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -51,8 +51,15 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   const getWeightDisplay = (log?: { weight?: number; weight_unit?: string; weight_grams?: number; value?: string | number }, unit: 'g' | 'oz' | 'lbs_oz' | 'kg' = 'g') => {
       if (!log) return '-';
+      
+      const targetUnit = unit || 'g';
+      const grams = log.weight_grams ?? parseLegacyWeightToGrams(String(log.value || ''));
+      
+      if (grams !== null && !isNaN(grams)) {
+        return formatWeightDisplay(grams, targetUnit as 'g' | 'kg' | 'oz' | 'lbs_oz');
+      }
+
       if (log.weight) return `${log.weight}${log.weight_unit || 'g'}`;
-      if (log.weight_grams) return formatWeightDisplay(log.weight_grams, unit);
       return typeof log.value === 'string' ? log.value : String(log.value || '-');
   };
 

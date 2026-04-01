@@ -766,6 +766,16 @@ const AnimalFormModal: React.FC<AnimalFormModalProps> = ({ isOpen, onClose, init
                                         />
                                         <span className="text-xs font-bold text-slate-700 uppercase tracking-widest mt-0.5">N/A (No Temp Controls)</span>
                                     </label>
+                                    {category === AnimalCategory.EXOTICS && !envNa && (
+                                        <label className="flex items-center gap-2 cursor-pointer bg-amber-50 px-3 py-1.5 rounded-md border border-amber-200 hover:bg-amber-100 transition-colors">
+                                            <input 
+                                                type="checkbox" 
+                                                {...register('ambient_temp_only')}
+                                                className="w-4 h-4 text-amber-600 rounded border-slate-300 focus:ring-amber-500"
+                                            />
+                                            <span className="text-xs font-bold text-amber-700 uppercase tracking-widest mt-0.5">Record Single Ambient Temp (Disable Basking/Cool)</span>
+                                        </label>
+                                    )}
                                 </div>
                                 
                                 {!envNa ? (

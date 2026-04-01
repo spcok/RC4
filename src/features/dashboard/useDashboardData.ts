@@ -90,8 +90,8 @@ export function useDashboardData(activeTab: AnimalCategory | 'ARCHIVED') {
     const filteredIds = new Set(filtered.map(a => a.id));
     const todayLogs = todayLogsFiltered.filter(l => filteredIds.has(l.animal_id));
     
-    const weighed = todayLogs.filter(l => l.log_type === LogType.WEIGHT).length;
-    const fed = todayLogs.filter(l => l.log_type === LogType.FEED).length;
+    const weighed = new Set(todayLogs.filter(l => l.log_type === LogType.WEIGHT).map(l => l.animal_id)).size;
+    const fed = new Set(todayLogs.filter(l => l.log_type === LogType.FEED).map(l => l.animal_id)).size;
 
     return { total: filtered.length, weighed, fed, animalData: new Map<string, AnimalStatsData>() };
   }, [liveAnimals, activeTab, todayLogsFiltered]);
@@ -125,11 +125,12 @@ export function useDashboardData(activeTab: AnimalCategory | 'ARCHIVED') {
 
     // Map the rich data onto the animal rows
     return result.map(animal => {
-      const animalLogs = logs.filter(l => l.animal_id === animal.id);
-      const todayWeight = animalLogs.find(l => l.log_type === LogType.WEIGHT);
-      const todayFeed = animalLogs.find(l => l.log_type === LogType.FEED);
+      const animalTodayLogs = todayLogsFiltered.filter(l => l.animal_id === animal.id);
+      const todayWeight = animalTodayLogs.find(l => l.log_type === LogType.WEIGHT);
+      const todayFeed = animalTodayLogs.find(l => l.log_type === LogType.FEED);
       
-      const feedLogs = animalLogs.filter(l => l.log_type === LogType.FEED).sort((a, b) => {
+      const animalAllLogs = logs.filter(l => l.animal_id === animal.id);
+      const feedLogs = animalAllLogs.filter(l => l.log_type === LogType.FEED).sort((a, b) => {
           const timeA = new Date(a.created_at || a.log_date || 0).getTime();
           const timeB = new Date(b.created_at || b.log_date || 0).getTime();
           return timeB - timeA;
@@ -140,7 +141,7 @@ export function useDashboardData(activeTab: AnimalCategory | 'ARCHIVED') {
       
       return { ...animal, todayWeight, todayFeed, lastFedStr, displayId } as EnhancedAnimal;
     });
-  }, [liveAnimals, archivedAnimals, activeTab, searchTerm, sortOption, logs]);
+  }, [liveAnimals, archivedAnimals, activeTab, searchTerm, sortOption, logs, todayLogsFiltered]);
 
   const toggleOrderLock = (locked: boolean) => setIsOrderLocked(locked);
   const cycleSort = () => setSortOption(prev => prev === 'alpha-asc' ? 'alpha-desc' : prev === 'alpha-desc' ? 'custom' : 'alpha-asc');

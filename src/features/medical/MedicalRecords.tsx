@@ -21,7 +21,7 @@ const quarantineColumnHelper = createColumnHelper<QuarantineRecord>();
 
 const MedicalRecords: React.FC<MedicalRecordsProps> = ({ animalId, variant = 'full' }) => {
   const permissions = usePermissions();
-  const { clinicalNotes, marCharts, quarantineRecords, isLoading, addClinicalNote, updateClinicalNote, addMarChart, addQuarantineRecord, updateQuarantineRecord } = useMedicalData();
+  const { clinicalNotes, marCharts, quarantineRecords, isLoading, addClinicalNote, updateClinicalNote, addMarChart, addQuarantineRecord, updateQuarantineRecord } = useMedicalData(animalId);
   const { animals } = useAnimalsData();
   const [activeTab, setActiveTab] = useState<'notes' | 'mar' | 'quarantine'>(variant === 'quick-view' ? 'notes' : 'notes');
   const [selectedPatient, setSelectedPatient] = useState<string>(animalId || 'All');
@@ -38,7 +38,7 @@ const MedicalRecords: React.FC<MedicalRecordsProps> = ({ animalId, variant = 'fu
       header: 'Medication',
       cell: info => <span className="font-semibold text-slate-900">{info.getValue()}</span>
     }),
-    marColumnHelper.accessor('animal_name', {
+    marColumnHelper.accessor('animalName', {
       header: 'Animal',
       cell: info => info.getValue()
     }),
@@ -52,7 +52,7 @@ const MedicalRecords: React.FC<MedicalRecordsProps> = ({ animalId, variant = 'fu
       header: 'Start-End',
       cell: info => {
         const m = info.getValue();
-        return `${new Date(m.start_date).toLocaleDateString('en-GB')} - ${m.end_date ? new Date(m.end_date).toLocaleDateString('en-GB') : 'Ongoing'}`;
+        return `${new Date(m.startDate).toLocaleDateString('en-GB')} - ${m.endDate ? new Date(m.endDate).toLocaleDateString('en-GB') : 'Ongoing'}`;
       }
     }),
     marColumnHelper.accessor('status', {
@@ -70,7 +70,7 @@ const MedicalRecords: React.FC<MedicalRecordsProps> = ({ animalId, variant = 'fu
         const m = info.getValue();
         return (
           <div className="flex gap-2">
-            {m.integrity_seal ? (
+            {m.integritySeal ? (
               <span title="Record Sealed"><Lock size={16} className="text-emerald-600" /></span>
             ) : (
               <button className="text-slate-400 hover:text-blue-600 transition-colors"><Edit2 size={16} /></button>
@@ -83,7 +83,7 @@ const MedicalRecords: React.FC<MedicalRecordsProps> = ({ animalId, variant = 'fu
   ] as unknown as ColumnDef<MARChart, unknown>[], []);
 
   const quarantineColumns = useMemo(() => [
-    quarantineColumnHelper.accessor('animal_name', {
+    quarantineColumnHelper.accessor('animalName', {
       header: 'Animal',
       cell: info => <span className="font-semibold text-slate-900">{info.getValue()}</span>
     }),
@@ -91,11 +91,11 @@ const MedicalRecords: React.FC<MedicalRecordsProps> = ({ animalId, variant = 'fu
       header: 'Reason',
       cell: info => info.getValue()
     }),
-    quarantineColumnHelper.accessor('start_date', {
+    quarantineColumnHelper.accessor('startDate', {
       header: 'Start',
       cell: info => new Date(info.getValue()).toLocaleDateString('en-GB')
     }),
-    quarantineColumnHelper.accessor('end_date', {
+    quarantineColumnHelper.accessor('endDate', {
       header: 'Target Release',
       cell: info => new Date(info.getValue()).toLocaleDateString('en-GB')
     }),
@@ -110,7 +110,7 @@ const MedicalRecords: React.FC<MedicalRecordsProps> = ({ animalId, variant = 'fu
         );
       }
     }),
-    quarantineColumnHelper.accessor('isolation_notes', {
+    quarantineColumnHelper.accessor('isolationNotes', {
       header: 'Notes',
       cell: info => <span className="max-w-xs truncate block">{info.getValue()}</span>
     }),
@@ -173,9 +173,9 @@ const MedicalRecords: React.FC<MedicalRecordsProps> = ({ animalId, variant = 'fu
     setEditingNote({
       ...note,
       id: crypto.randomUUID(),
-      note_text: `[CORRECTION to record from ${new Date(note.date).toLocaleDateString('en-GB')}]\n\n`,
-      integrity_seal: undefined,
-      staff_initials: '',
+      noteText: `[CORRECTION to record from ${new Date(note.date).toLocaleDateString('en-GB')}]\n\n`,
+      integritySeal: undefined,
+      staffInitials: '',
       date: new Date().toISOString().split('T')[0],
     });
     setIsCorrection(true);
@@ -188,7 +188,7 @@ const MedicalRecords: React.FC<MedicalRecordsProps> = ({ animalId, variant = 'fu
       printWindow.document.write(`
         <html>
           <head>
-            <title>Clinical Note - ${note.animal_name}</title>
+            <title>Clinical Note - ${note.animalName}</title>
             <style>
               body { font-family: sans-serif; padding: 20px; }
               h1 { font-size: 24px; margin-bottom: 10px; }
@@ -198,27 +198,27 @@ const MedicalRecords: React.FC<MedicalRecordsProps> = ({ animalId, variant = 'fu
             </style>
           </head>
           <body>
-            <h1>Clinical Note: ${note.animal_name}</h1>
+            <h1>Clinical Note: ${note.animalName}</h1>
             <p><span class="label">Date:</span> ${new Date(note.date).toLocaleDateString('en-GB')}</p>
-            <p><span class="label">Type:</span> ${note.note_type}</p>
-            <p><span class="label">Staff:</span> ${note.staff_initials}</p>
+            <p><span class="label">Type:</span> ${note.noteType}</p>
+            <p><span class="label">Staff:</span> ${note.staffInitials}</p>
             ${note.diagnosis ? `<p><span class="label">Diagnosis:</span> ${note.diagnosis}</p>` : ''}
             ${note.bcs ? `<p><span class="label">BCS:</span> ${note.bcs}/5</p>` : ''}
-            ${note.weight ? `<p><span class="label">Weight:</span> ${note.weight}${note.weight_unit || 'g'}</p>` : note.weight_grams ? `<p><span class="label">Weight:</span> ${note.weight_grams}g</p>` : ''}
+            ${note.weight ? `<p><span class="label">Weight:</span> ${note.weight}${note.weightUnit || 'g'}</p>` : note.weightGrams ? `<p><span class="label">Weight:</span> ${note.weightGrams}g</p>` : ''}
             
             <div class="section">
               <h3>Clinical Observation</h3>
-              <p style="white-space: pre-wrap;">${note.note_text}</p>
+              <p style="white-space: pre-wrap;">${note.noteText}</p>
             </div>
 
-            ${note.treatment_plan ? `
+            ${note.treatmentPlan ? `
               <div class="section">
                 <h3>Treatment Plan</h3>
-                <p style="white-space: pre-wrap;">${note.treatment_plan}</p>
+                <p style="white-space: pre-wrap;">${note.treatmentPlan}</p>
               </div>
             ` : ''}
 
-            ${note.recheck_date ? `<div class="section"><p><span class="label">Recheck Date:</span> ${new Date(note.recheck_date).toLocaleDateString('en-GB')}</p></div>` : ''}
+            ${note.recheckDate ? `<div class="section"><p><span class="label">Recheck Date:</span> ${new Date(note.recheckDate).toLocaleDateString('en-GB')}</p></div>` : ''}
           </body>
         </html>
       `);
@@ -228,14 +228,14 @@ const MedicalRecords: React.FC<MedicalRecordsProps> = ({ animalId, variant = 'fu
   };
 
   const filteredNotes = (clinicalNotes || [])
-    .filter(n => selectedPatient === 'All' || n.animal_id === selectedPatient)
+    .filter(n => selectedPatient === 'All' || n.animalId === selectedPatient)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const filteredMarCharts = (marCharts || [])
-    .filter(m => selectedPatient === 'All' || m.animal_id === selectedPatient);
+    .filter(m => selectedPatient === 'All' || m.animalId === selectedPatient);
 
   const filteredQuarantineRecords = (quarantineRecords || [])
-    .filter(q => selectedPatient === 'All' || q.animal_id === selectedPatient);
+    .filter(q => selectedPatient === 'All' || q.animalId === selectedPatient);
 
   return (
     <div className="space-y-6">
@@ -344,15 +344,15 @@ const MedicalRecords: React.FC<MedicalRecordsProps> = ({ animalId, variant = 'fu
                   <div className="flex items-start justify-between">
                     <div className="space-y-1">
                       <div className="flex items-center gap-3">
-                        <h3 className="text-lg font-bold text-slate-900">{n.animal_name}</h3>
+                        <h3 className="text-lg font-bold text-slate-900">{n.animalName}</h3>
                         <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded-md text-xs font-medium">
-                          {n.note_type}
+                          {n.noteType}
                         </span>
                       </div>
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500 font-medium">
                         <span>{new Date(n.date).toLocaleDateString('en-GB')}</span>
                         <span className="hidden sm:inline text-slate-300">•</span>
-                        <span>By: {String(n.staff_initials)}</span>
+                        <span>By: {String(n.staffInitials)}</span>
                       </div>
                       {n.diagnosis && (
                         <p className="text-sm text-slate-600 font-medium mt-1">
@@ -360,7 +360,7 @@ const MedicalRecords: React.FC<MedicalRecordsProps> = ({ animalId, variant = 'fu
                         </p>
                       )}
                       <p className="text-slate-500 text-sm mt-2 line-clamp-2">
-                        {String(n.note_text)}
+                        {String(n.noteText)}
                       </p>
                     </div>
                   </div>
@@ -379,11 +379,11 @@ const MedicalRecords: React.FC<MedicalRecordsProps> = ({ animalId, variant = 'fu
                 <div className="space-y-6">
                   <div className="flex justify-between items-start border-b border-slate-100 pb-4">
                     <div>
-                      <h2 className="text-xl font-bold text-slate-900">{selectedNote.animal_name}</h2>
+                      <h2 className="text-xl font-bold text-slate-900">{selectedNote.animalName}</h2>
                       <p className="text-sm text-slate-500 font-medium">{new Date(selectedNote.date).toLocaleDateString('en-GB')}</p>
                     </div>
                     <div className="flex gap-2">
-                      {selectedNote.integrity_seal ? (
+                      {selectedNote.integritySeal ? (
                         <div className="flex items-center gap-2">
                           <span title="Record Sealed"><Lock size={16} className="text-emerald-600" /></span>
                           <button 
@@ -415,7 +415,7 @@ const MedicalRecords: React.FC<MedicalRecordsProps> = ({ animalId, variant = 'fu
 
                   <div className="flex flex-wrap gap-2">
                     <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded-md text-xs font-medium">
-                      {selectedNote.note_type}
+                      {selectedNote.noteType}
                     </span>
                     {selectedNote.bcs && (
                       <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-xs font-medium">
@@ -424,11 +424,11 @@ const MedicalRecords: React.FC<MedicalRecordsProps> = ({ animalId, variant = 'fu
                     )}
                     {selectedNote.weight ? (
                       <span className="bg-emerald-50 text-emerald-700 px-2 py-1 rounded-md text-xs font-medium">
-                        Weight: {selectedNote.weight}{selectedNote.weight_unit || 'g'}
+                        Weight: {selectedNote.weight}{selectedNote.weightUnit || 'g'}
                       </span>
-                    ) : selectedNote.weight_grams ? (
+                    ) : selectedNote.weightGrams ? (
                       <span className="bg-emerald-50 text-emerald-700 px-2 py-1 rounded-md text-xs font-medium">
-                        Weight: {selectedNote.weight_grams}g
+                        Weight: {selectedNote.weightGrams}g
                       </span>
                     ) : null}
                   </div>
@@ -443,43 +443,43 @@ const MedicalRecords: React.FC<MedicalRecordsProps> = ({ animalId, variant = 'fu
                   <div>
                     <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wide mb-2">Clinical Observation</h3>
                     <p className="text-slate-700 text-sm whitespace-pre-wrap leading-relaxed">
-                      {selectedNote.note_text}
+                      {selectedNote.noteText}
                     </p>
                   </div>
 
-                  {selectedNote.treatment_plan && (
+                  {selectedNote.treatmentPlan && (
                     <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
                       <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wide mb-2">Treatment Plan</h3>
                       <p className="text-slate-700 text-sm whitespace-pre-wrap leading-relaxed">
-                        {selectedNote.treatment_plan}
+                        {selectedNote.treatmentPlan}
                       </p>
                     </div>
                   )}
 
-                  {(selectedNote.thumbnail_url || selectedNote.attachment_url) && (
+                  {(selectedNote.thumbnailUrl || selectedNote.attachmentUrl) && (
                     <div>
                       <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wide mb-2">Attachment</h3>
                       <div 
                         className="relative rounded-xl overflow-hidden border border-slate-200 group cursor-pointer"
                         onClick={() => {
-                          if (selectedNote.attachment_url && !selectedNote.attachment_url.startsWith('local://')) {
+                          if (selectedNote.attachmentUrl && !selectedNote.attachmentUrl.startsWith('local://')) {
                             if (navigator.onLine) {
-                              window.open(selectedNote.attachment_url, '_blank');
+                              window.open(selectedNote.attachmentUrl, '_blank');
                             } else {
                               alert('Internet connection required to view high-res image.');
                             }
-                          } else if (selectedNote.attachment_url?.startsWith('local://')) {
+                          } else if (selectedNote.attachmentUrl?.startsWith('local://')) {
                             alert('High-res image is still uploading.');
                           }
                         }}
                       >
                         <img 
-                          src={selectedNote.thumbnail_url || selectedNote.attachment_url} 
+                          src={selectedNote.thumbnailUrl || selectedNote.attachmentUrl} 
                           alt="Clinical attachment" 
                           className="w-full h-auto object-cover max-h-64"
                           referrerPolicy="no-referrer"
                         />
-                        {selectedNote.attachment_url && !selectedNote.attachment_url.startsWith('local://') && (
+                        {selectedNote.attachmentUrl && !selectedNote.attachmentUrl.startsWith('local://') && (
                           <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                             <p className="text-white text-sm font-medium px-4 py-2 bg-black/50 rounded-lg backdrop-blur-sm">
                               Tap to download high-res (Internet Required)
@@ -491,9 +491,9 @@ const MedicalRecords: React.FC<MedicalRecordsProps> = ({ animalId, variant = 'fu
                   )}
 
                   <div className="border-t border-slate-100 pt-4 flex justify-between items-center text-sm text-slate-500">
-                    <span>Recorded by: <span className="font-medium text-slate-700">{selectedNote.staff_initials}</span></span>
-                    {selectedNote.recheck_date && (
-                      <span className="text-amber-600 font-medium">Recheck: {new Date(selectedNote.recheck_date).toLocaleDateString('en-GB')}</span>
+                    <span>Recorded by: <span className="font-medium text-slate-700">{selectedNote.staffInitials}</span></span>
+                    {selectedNote.recheckDate && (
+                      <span className="text-amber-600 font-medium">Recheck: {new Date(selectedNote.recheckDate).toLocaleDateString('en-GB')}</span>
                     )}
                   </div>
                 </div>

@@ -8,17 +8,17 @@ import { queueFileUpload } from '../../lib/storageEngine';
 import { SignatureCapture } from '../../components/ui/SignatureCapture';
 import { convertToGrams, convertFromGrams } from '../../services/weightUtils';
 
-// 1. ZOD SCHEMA AMPUTATION: weight and weight_unit are strictly removed.
+// 1. ZOD SCHEMA AMPUTATION: weight and weightUnit are strictly removed.
 const schema = z.object({
-  animal_id: z.string().min(1, 'Animal is required'),
+  animalId: z.string().min(1, 'Animal is required'),
   date: z.string().min(1, 'Date is required'),
-  note_type: z.enum(['Illness', 'Checkup', 'Injury', 'Routine']),
+  noteType: z.enum(['Illness', 'Checkup', 'Injury', 'Routine']),
   diagnosis: z.string().optional(),
   bcs: z.number().min(1).max(5).optional(),
-  note_text: z.string().min(5, 'Note must be at least 5 characters'),
-  treatment_plan: z.string().optional(),
-  recheck_date: z.string().optional(),
-  staff_initials: z.string().min(2, 'Initials must be at least 2 characters'),
+  noteText: z.string().min(5, 'Note must be at least 5 characters'),
+  treatmentPlan: z.string().optional(),
+  recheckDate: z.string().optional(),
+  staffInitials: z.string().min(2, 'Initials must be at least 2 characters'),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -44,16 +44,16 @@ export const AddClinicalNoteModal: React.FC<Props> = ({ isOpen, onClose, onSave,
   const { register, handleSubmit, control, formState: { errors, isSubmitting }, reset, setValue } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      animal_id: preselectedAnimalId || '',
+      animalId: preselectedAnimalId || '',
       date: new Date().toISOString().split('T')[0],
-      note_type: 'Routine',
+      noteType: 'Routine',
     }
   });
 
   // 3. THE OBSERVER PATTERN: Watch the selected animal and derive the unit
-  const selectedAnimalId = useWatch({ control, name: 'animal_id' });
+  const selectedAnimalId = useWatch({ control, name: 'animalId' });
   const selectedAnimal = animals?.find(a => a.id === selectedAnimalId);
-  const targetUnit = selectedAnimal?.weight_unit === 'lbs_oz' ? 'lb' : (selectedAnimal?.weight_unit === 'oz' ? 'oz' : 'g');
+  const targetUnit = selectedAnimal?.weightUnit === 'lbs_oz' ? 'lb' : (selectedAnimal?.weightUnit === 'oz' ? 'oz' : 'g');
   
   // 4. ABSOLUTE STATE ISOLATION: Manual weight tracking independent of RHF
   const [weightValues, setWeightValues] = useState({ g: 0, lb: 0, oz: 0, eighths: 0 });
@@ -66,29 +66,29 @@ export const AddClinicalNoteModal: React.FC<Props> = ({ isOpen, onClose, onSave,
   // 5. HYDRATION: Load existing data into the form and manual state
   useEffect(() => {
     if (isOpen && initialData) {
-      setValue('animal_id', initialData.animal_id);
+      setValue('animalId', initialData.animalId);
       setValue('date', initialData.date);
-      setValue('note_type', initialData.note_type as 'Illness' | 'Checkup' | 'Injury' | 'Routine');
+      setValue('noteType', initialData.noteType as 'Illness' | 'Checkup' | 'Injury' | 'Routine');
       setValue('diagnosis', initialData.diagnosis || '');
       setValue('bcs', initialData.bcs);
-      setValue('note_text', initialData.note_text);
-      setValue('treatment_plan', initialData.treatment_plan || '');
-      setValue('recheck_date', initialData.recheck_date || '');
-      setValue('staff_initials', initialData.staff_initials);
+      setValue('noteText', initialData.noteText);
+      setValue('treatmentPlan', initialData.treatmentPlan || '');
+      setValue('recheckDate', initialData.recheckDate || '');
+      setValue('staffInitials', initialData.staffInitials);
       setSignatureData(undefined);
-      setIntegritySeal(initialData.integrity_seal);
+      setIntegritySeal(initialData.integritySeal);
 
       // Hydrate custom weight state
-      if (initialData.weight_grams) {
-        setWeightValues(convertFromGrams(initialData.weight_grams, targetUnit as 'g' | 'oz' | 'lb'));
+      if (initialData.weightGrams) {
+        setWeightValues(convertFromGrams(initialData.weightGrams, targetUnit as 'g' | 'oz' | 'lb'));
       } else {
         setWeightValues({ g: 0, lb: 0, oz: 0, eighths: 0 });
       }
     } else if (isOpen && !initialData) {
       reset({
-        animal_id: preselectedAnimalId || '',
+        animalId: preselectedAnimalId || '',
         date: new Date().toISOString().split('T')[0],
-        note_type: 'Routine',
+        noteType: 'Routine',
       });
       setSignatureData(undefined);
       setIntegritySeal(undefined);
@@ -102,15 +102,15 @@ export const AddClinicalNoteModal: React.FC<Props> = ({ isOpen, onClose, onSave,
   // 6. THE SUBMISSION INTERCEPTOR
   const onSubmit = async (data: FormData) => {
     setUploading(true);
-    let attachment_url: string | undefined = initialData?.attachment_url;
-    let thumbnail_url: string | undefined = initialData?.thumbnail_url;
+    let attachmentUrl: string | undefined = initialData?.attachmentUrl;
+    let thumbnailUrl: string | undefined = initialData?.thumbnailUrl;
     
     try {
       if (file) {
         try {
           const uploadResult = await queueFileUpload(file, 'medical', recordId, 'medical_logs', 'attachment_url');
-          attachment_url = uploadResult.attachment_url;
-          thumbnail_url = uploadResult.thumbnail_url;
+          attachmentUrl = uploadResult.attachment_url;
+          thumbnailUrl = uploadResult.thumbnail_url;
         } catch (err) {
           console.error('🛠️ [Medical QA] File processing error:', err);
           alert(err instanceof Error ? err.message : 'Image too large for offline processing.');
@@ -126,12 +126,12 @@ export const AddClinicalNoteModal: React.FC<Props> = ({ isOpen, onClose, onSave,
       // Manually merge the RHF data with our custom weight data
       const notePayload = { 
         ...data, 
-        weight_grams: totalGrams > 0 ? totalGrams : undefined,
+        weightGrams: totalGrams > 0 ? totalGrams : undefined,
         weight: totalGrams > 0 ? totalGrams : undefined,
-        weight_unit: selectedAnimal?.weight_unit || 'g',
-        attachment_url,
-        thumbnail_url,
-        integrity_seal: integritySeal
+        weightUnit: selectedAnimal?.weightUnit || 'g',
+        attachmentUrl,
+        thumbnailUrl,
+        integritySeal: integritySeal
       };
 
       if (initialData) {
@@ -166,11 +166,11 @@ export const AddClinicalNoteModal: React.FC<Props> = ({ isOpen, onClose, onSave,
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700">Animal</label>
-              <select {...register('animal_id')} className="w-full mt-1 border border-slate-300 rounded-lg p-2 text-sm">
+              <select {...register('animalId')} className="w-full mt-1 border border-slate-300 rounded-lg p-2 text-sm">
                 <option value="">Select an animal</option>
                 {animals?.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
-              {errors.animal_id && <p className="text-red-500 text-xs mt-1">{errors.animal_id.message}</p>}
+              {errors.animalId && <p className="text-red-500 text-xs mt-1">{errors.animalId.message}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700">Date</label>
@@ -179,7 +179,7 @@ export const AddClinicalNoteModal: React.FC<Props> = ({ isOpen, onClose, onSave,
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700">Note Type</label>
-              <select {...register('note_type')} className="w-full mt-1 border border-slate-300 rounded-lg p-2 text-sm">
+              <select {...register('noteType')} className="w-full mt-1 border border-slate-300 rounded-lg p-2 text-sm">
                 <option value="Illness">Illness</option>
                 <option value="Checkup">Checkup</option>
                 <option value="Injury">Injury</option>
@@ -257,24 +257,24 @@ export const AddClinicalNoteModal: React.FC<Props> = ({ isOpen, onClose, onSave,
 
           <div>
             <label className="block text-sm font-medium text-slate-700">Clinical Observation</label>
-            <textarea {...register('note_text')} className="w-full mt-1 border border-slate-300 rounded-lg p-2 text-sm" rows={4} placeholder="Detailed clinical notes..." />
-            {errors.note_text && <p className="text-red-500 text-xs mt-1">{errors.note_text.message}</p>}
+            <textarea {...register('noteText')} className="w-full mt-1 border border-slate-300 rounded-lg p-2 text-sm" rows={4} placeholder="Detailed clinical notes..." />
+            {errors.noteText && <p className="text-red-500 text-xs mt-1">{errors.noteText.message}</p>}
           </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-700">Treatment Plan</label>
-            <textarea {...register('treatment_plan')} className="w-full mt-1 border border-slate-300 rounded-lg p-2 text-sm" rows={3} placeholder="Medications, procedures, or monitoring plan..." />
+            <textarea {...register('treatmentPlan')} className="w-full mt-1 border border-slate-300 rounded-lg p-2 text-sm" rows={3} placeholder="Medications, procedures, or monitoring plan..." />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700">Recheck Date (Optional)</label>
-              <input type="date" {...register('recheck_date')} className="w-full mt-1 border border-slate-300 rounded-lg p-2 text-sm" />
+              <input type="date" {...register('recheckDate')} className="w-full mt-1 border border-slate-300 rounded-lg p-2 text-sm" />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700">Staff Initials <span className="text-red-500">*</span></label>
-              <input type="text" {...register('staff_initials')} className="w-full mt-1 border border-slate-300 rounded-lg p-2 text-sm" required />
-              {errors.staff_initials && <p className="text-red-500 text-xs mt-1">{errors.staff_initials.message}</p>}
+              <input type="text" {...register('staffInitials')} className="w-full mt-1 border border-slate-300 rounded-lg p-2 text-sm" required />
+              {errors.staffInitials && <p className="text-red-500 text-xs mt-1">{errors.staffInitials.message}</p>}
             </div>
           </div>
 
@@ -285,7 +285,7 @@ export const AddClinicalNoteModal: React.FC<Props> = ({ isOpen, onClose, onSave,
                 <Upload size={20} className="text-slate-600" />
                 <input type="file" accept="image/*,.pdf" onChange={(e) => setFile(e.target.files?.[0] || null)} className="hidden" />
               </label>
-              <span className="text-sm text-slate-500">{file ? file.name : initialData?.attachment_url ? 'Existing attachment' : 'No file selected'}</span>
+              <span className="text-sm text-slate-500">{file ? file.name : initialData?.attachmentUrl ? 'Existing attachment' : 'No file selected'}</span>
             </div>
           </div>
 

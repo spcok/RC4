@@ -5,6 +5,7 @@ import {
     AlertCircle, ListTodo, X, Check, UserCheck, Loader2, Search
 } from 'lucide-react';
 import AddEntryModal from './AddEntryModal';
+import { getUKLocalDate } from '../../services/temporalService';
 import { useTaskData } from './useTaskData';
 import { useAnimalsData } from '../animals/useAnimalsData';
 import { useUsersData } from '../settings/useUsersData';
@@ -32,7 +33,7 @@ const Tasks: React.FC = () => {
   const [newTitle, setNewTitle] = useState('');
   const [newType, setNewType] = useState<LogType>(LogType.GENERAL);
   const [newAnimalId, setNewAnimalId] = useState('');
-  const [newDueDate, setNewDueDate] = useState(new Date().toISOString().split('T')[0]);
+  const [newDueDate, setNewDueDate] = useState(getUKLocalDate());
   const [newAssignedTo, setNewAssignedTo] = useState(currentUser?.id || '');
 
   const toggleTaskCompletion = (task: Task) => {
@@ -144,7 +145,7 @@ const Tasks: React.FC = () => {
         <div className="space-y-4 pb-24">
             {tasks && tasks.length > 0 ? tasks.map((task: Task) => {
                 const animal = animals.find(a => a.id === task.animal_id);
-                const isOverdue = !task.completed && task.due_date && task.due_date < new Date().toISOString().split('T')[0];
+                const isOverdue = !task.completed && task.due_date && task.due_date < getUKLocalDate();
                 const assignedUser = users?.find((u: User) => u.id === task.assigned_to);
 
                 return (
@@ -303,7 +304,7 @@ const Tasks: React.FC = () => {
                 }} 
                 animal={selectedAnimalForEntry} 
                 initialType={completingTask?.type || LogType.GENERAL} 
-                initialDate={new Date().toISOString().split('T')[0]} 
+                initialDate={getUKLocalDate()} 
             />
         )}
     </div>

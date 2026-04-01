@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Animal, LogEntry, LogType, AnimalCategory } from '../../../types';
+import { getUKLocalDate } from '../../../services/temporalService';
 import { getMaidstoneDailyWeather } from '../../../services/weatherService';
 
 export const useWeatherSync = (
@@ -12,11 +13,12 @@ export const useWeatherSync = (
 ) => {
   const [isSyncing, setIsSyncing] = useState(false);
   const isMounted = useRef(false);
+  const successfullySynced = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     isMounted.current = true;
     const syncWeather = async () => {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getUKLocalDate();
       if (viewDate !== today) return;
       if (animals.length === 0) return;
 
@@ -24,7 +26,8 @@ export const useWeatherSync = (
         animal =>
           (animal.category === AnimalCategory.OWLS || animal.category === AnimalCategory.RAPTORS) &&
           !getTodayLog(animal.id, LogType.TEMPERATURE) &&
-          !isProcessing.current.has(animal.id)
+          !isProcessing.current.has(animal.id) &&
+          !successfullySynced.current.has(animal.id)
       );
 
       if (birdsToSync.length === 0) return;
@@ -35,7 +38,7 @@ export const useWeatherSync = (
         const weather = await getMaidstoneDailyWeather();
         
         for (const bird of birdsToSync) {
-          if (isProcessing.current.has(bird.id)) continue;
+          if (isProcessing.current.has(bird.id) || successfullySynced.current.has(bird.id)) continue;
           isProcessing.current.add(bird.id);
           try {
             await addLogEntry({
@@ -46,11 +49,12 @@ export const useWeatherSync = (
               value: `${Math.round(weather.currentTemp)}°C`,
               notes: weather.description
             });
+            successfullySynced.current.add(bird.id);
           } catch (error) {
             console.error('Fetch failed', error);
-          } finally {
             isProcessing.current.delete(bird.id);
           }
+          // Note: We DO NOT delete from isProcessing.current on success to prevent re-syncing in same session
         }
       } catch (error) {
         console.error('Failed to auto-sync weather for birds:', error);

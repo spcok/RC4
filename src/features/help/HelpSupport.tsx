@@ -20,7 +20,7 @@ const guides = [
     title: 'Daily Logs',
     description: 'Submit husbandry notes and observations.',
     steps: [
-      'Navigate to the "Daily Log" tab in the sidebar.',
+      'Navigate to the "Daily Logs" tab in the sidebar.',
       'Select the date and animal (if applicable).',
       'Enter your husbandry notes, feed consumption, and observations.',
       'Click "Submit Log" to save your entry.'

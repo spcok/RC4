@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -7,7 +7,8 @@ import {
   flexRender,
   ColumnDef,
 } from '@tanstack/react-table';
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 
 interface DataTableProps<TData, TValue = unknown> {
   columns: ColumnDef<TData, TValue>[];
@@ -19,7 +20,7 @@ interface DataTableProps<TData, TValue = unknown> {
 export function DataTable<TData, TValue = unknown>({
   columns,
   data,
-  pageSize = 10,
+  pageSize = 10000, // Set to a large number to virtualize all data
   searchPlaceholder = "Search records...",
 }: DataTableProps<TData, TValue>) {
   const [globalFilter, setGlobalFilter] = useState('');
@@ -42,6 +43,17 @@ export function DataTable<TData, TValue = unknown>({
     },
   });
 
+  const parentRef = useRef<HTMLDivElement>(null);
+  const rows = table.getRowModel().rows;
+
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 45,
+  });
+
+  const virtualItems = virtualizer.getVirtualItems();
+
   return (
     <div className="space-y-4">
       {/* Global Search Bar */}
@@ -58,9 +70,12 @@ export function DataTable<TData, TValue = unknown>({
         />
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-slate-50 border-b border-slate-200">
+      <div 
+        className="bg-white border border-slate-200 rounded-lg overflow-auto h-[600px]" 
+        ref={parentRef}
+      >
+        <table className="w-full text-left text-sm relative">
+          <thead className="sticky top-0 bg-slate-50 border-b border-slate-200 z-10">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
@@ -76,17 +91,34 @@ export function DataTable<TData, TValue = unknown>({
               </tr>
             ))}
           </thead>
-          <tbody className="divide-y divide-slate-100">
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="hover:bg-slate-50 transition-colors">
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-4 py-3 text-slate-700">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              ))
+          <tbody 
+            className="divide-y divide-slate-100 relative"
+            style={{ height: `${virtualizer.getTotalSize()}px` }}
+          >
+            {virtualItems.length ? (
+              virtualItems.map((virtualRow) => {
+                const row = rows[virtualRow.index];
+                return (
+                  <tr 
+                    key={row.id} 
+                    className="hover:bg-slate-50 transition-colors"
+                    style={{ 
+                      position: 'absolute', 
+                      top: 0, 
+                      left: 0, 
+                      width: '100%', 
+                      height: `${virtualRow.size}px`,
+                      transform: `translateY(${virtualRow.start}px)` 
+                    }}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <td key={cell.id} className="px-4 py-3 text-slate-700">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })
             ) : (
               <tr>
                 <td colSpan={columns.length} className="h-24 text-center text-slate-500">
@@ -101,24 +133,7 @@ export function DataTable<TData, TValue = unknown>({
       {/* Pagination Controls */}
       <div className="flex items-center justify-between px-2">
         <div className="text-xs text-slate-500 font-medium">
-          Page {table.getState().pagination.pageIndex + 1} of{' '}
-          {table.getPageCount() || 1}
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-            className="p-1 rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-slate-600"
-          >
-            <ChevronLeft size={16} />
-          </button>
-          <button
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-            className="p-1 rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-slate-600"
-          >
-            <ChevronRight size={16} />
-          </button>
+          Showing {rows.length} records
         </div>
       </div>
     </div>

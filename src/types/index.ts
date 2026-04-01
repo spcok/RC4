@@ -186,6 +186,7 @@ export interface Animal {
   is_quarantine?: boolean;
   distribution_map_url?: string;
   water_tipping_temp?: number;
+  ambient_temp_only?: boolean;
   acquisition_type?: 'BORN' | 'TRANSFERRED_IN' | 'RESCUE' | 'UNKNOWN';
   created_at?: string;
   updated_at?: string;
@@ -357,58 +358,61 @@ export interface OrgProfile {
 export interface ClinicalNote {
   id: string;
 
-  animal_id: string;
-  animal_name: string;
+  animalId: string;
+  animalName: string;
   date: string;
-  note_type: string;
-  note_text: string;
-  recheck_date?: string;
-  staff_initials: string;
-  attachment_url?: string;
-  thumbnail_url?: string;
+  noteType: string;
+  noteText: string;
+  recheckDate?: string;
+  staffInitials: string;
+  attachmentUrl?: string;
+  thumbnailUrl?: string;
   diagnosis?: string;
   bcs?: number;
-  weight_grams?: number;
+  weightGrams?: number;
   weight?: number;
-  weight_unit?: 'g' | 'kg' | 'oz' | 'lbs' | 'lbs_oz';
-  treatment_plan?: string;
-  integrity_seal?: string;
-  updated_at?: string;
-  is_deleted?: boolean;
+  weightUnit?: 'g' | 'kg' | 'oz' | 'lbs' | 'lbs_oz';
+  treatmentPlan?: string;
+  integritySeal?: string;
+  updatedAt?: string;
+  isDeleted?: boolean;
+  createdAt?: string;
 }
 
 export interface MARChart {
   id: string;
 
-  animal_id: string;
-  animal_name: string;
+  animalId: string;
+  animalName: string;
   medication: string;
   dosage: string;
   frequency: string;
-  start_date: string;
-  end_date?: string;
+  startDate: string;
+  endDate?: string;
   status: 'Active' | 'Completed';
   instructions: string;
-  administered_dates: string[];
-  staff_initials: string;
-  integrity_seal?: string;
-  updated_at?: string;
-  is_deleted?: boolean;
+  administeredDates: string[];
+  staffInitials: string;
+  integritySeal?: string;
+  updatedAt?: string;
+  isDeleted?: boolean;
+  createdAt?: string;
 }
 
 export interface QuarantineRecord {
   id: string;
 
-  animal_id: string;
-  animal_name: string;
+  animalId: string;
+  animalName: string;
   reason: string;
-  start_date: string;
-  end_date: string;
+  startDate: string;
+  endDate: string;
   status: 'Active' | 'Cleared';
-  isolation_notes: string;
-  staff_initials: string;
-  updated_at?: string;
-  is_deleted?: boolean;
+  isolationNotes: string;
+  staffInitials: string;
+  updatedAt?: string;
+  isDeleted?: boolean;
+  createdAt?: string;
 }
 
 export interface InternalMovement {

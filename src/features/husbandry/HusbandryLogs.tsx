@@ -4,19 +4,23 @@ import { createColumnHelper, ColumnDef } from '@tanstack/react-table';
 import AddEntryModal from './AddEntryModal';
 import { Animal, LogType, LogEntry } from '../../types';
 import { formatWeightDisplay, parseLegacyWeightToGrams } from '../../services/weightUtils';
+import { getUKLocalDate } from '../../services/temporalService';
 import { useDailyLogData } from './useDailyLogData'; 
 import { DataTable } from '../../components/ui/DataTable';
 
-interface Props {
-  animal?: Animal; // Made optional in case it mounts from the global routing tree
+interface HusbandryLogsProps {
+  animalId?: string;
+  weightUnit?: 'g' | 'kg' | 'oz' | 'lbs_oz';
+  animal?: Animal; // Keep for modal context
 }
 
 const validHusbandryTypes = ['FEED', 'WEIGHT', 'FLIGHT', 'TRAINING', 'TEMPERATURE'];
 
 const columnHelper = createColumnHelper<LogEntry>();
 
-const HusbandryLogs: React.FC<Props> = ({ animal }) => {
-  const { dailyLogs: logs, isLoading: loading } = useDailyLogData('today', 'all');
+const HusbandryLogs: React.FC<HusbandryLogsProps> = ({ animalId, weightUnit = 'g', animal }) => {
+  const effectiveAnimalId = animalId || animal?.id;
+  const { dailyLogs: logs, isLoading: loading } = useDailyLogData('today', 'all', effectiveAnimalId);
   
   const [filter, setFilter] = useState('ALL');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -60,23 +64,13 @@ const HusbandryLogs: React.FC<Props> = ({ animal }) => {
 
   const renderLogValue = useCallback((log: LogEntry) => {
     if (log.log_type?.toUpperCase() === 'WEIGHT') {
-      const targetUnit = animal?.weight_unit || 'g';
-      const val = (log.value || '').toLowerCase();
-
-      if (log.weight_unit && targetUnit && log.weight_unit === targetUnit) return log.value;
-      if ((targetUnit === 'oz' && val.includes('oz')) || 
-          (targetUnit === 'lbs_oz' && (val.includes('lb') || val.includes('oz')))) {
-        return log.value;
-      }
-
-      const grams = log.weight_grams ?? parseLegacyWeightToGrams(log.value);
+      const grams = parseLegacyWeightToGrams(log.value);
       if (grams !== null && !isNaN(grams)) {
-        const unit = targetUnit === 'lbs_oz' ? 'lbs_oz' : targetUnit;
-        return formatWeightDisplay(grams, unit as 'g' | 'kg' | 'oz' | 'lbs_oz');
+        return formatWeightDisplay(grams, weightUnit as 'g' | 'kg' | 'oz' | 'lbs_oz');
       }
     }
     return log.value || log.notes || '—';
-  }, [animal?.weight_unit]);
+  }, [weightUnit]);
 
   const getTypeColor = (type: string) => {
     const safeType = type?.toUpperCase();
@@ -90,19 +84,19 @@ const HusbandryLogs: React.FC<Props> = ({ animal }) => {
     }
   };
 
-  const columns: ColumnDef<LogEntry, any>[] = useMemo(() => [
+  const columns: ColumnDef<LogEntry>[] = useMemo(() => [
     columnHelper.accessor(row => row.log_date || row.created_at, {
       id: 'date',
       header: 'Date',
       cell: info => {
-        const val = info.getValue();
+        const val = info.getValue() as string | undefined;
         return val ? new Date(val).toLocaleDateString() : '—';
       }
     }),
     columnHelper.accessor('log_type', {
       header: 'Type',
       cell: info => {
-        const type = info.getValue() || '';
+        const type = (info.getValue() as string) || '';
         return (
           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${getTypeColor(type)}`}>
             {type}
@@ -114,7 +108,7 @@ const HusbandryLogs: React.FC<Props> = ({ animal }) => {
       id: 'value',
       header: 'Value',
       cell: info => {
-        const log = info.getValue();
+        const log = info.getValue() as LogEntry;
         const displayValue = renderLogValue(log);
         return <span className="font-bold text-slate-900">{displayValue}</span>;
       }
@@ -144,7 +138,7 @@ const HusbandryLogs: React.FC<Props> = ({ animal }) => {
         );
       }
     })
-  ], [animal?.weight_unit, renderLogValue]);
+  ], [renderLogValue]);
 
   return (
     <div className="space-y-4 relative">
@@ -184,7 +178,7 @@ const HusbandryLogs: React.FC<Props> = ({ animal }) => {
           animal={animal!}
           existingLog={selectedLog}
           initialType={LogType.FEED}
-          initialDate={new Date().toISOString().split('T')[0]}
+          initialDate={getUKLocalDate()}
         />
       )}
     </div>

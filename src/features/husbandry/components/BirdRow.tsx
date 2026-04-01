@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { Animal, LogType, LogEntry, EntityType } from '../../../types';
 import { safeJsonParse } from '../../../lib/jsonUtils';
+import { formatWeightDisplay, parseLegacyWeightToGrams } from '../../../services/weightUtils';
 
 interface BirdRowProps {
   animal: Animal;
@@ -17,6 +18,15 @@ export const BirdRow: React.FC<BirdRowProps> = memo(({ animal, getTodayLog, onCe
 
   const formatValue = (log: LogEntry | undefined, fallback: string) => {
     if (!log || !log.value) return fallback;
+    
+    if (log.log_type === LogType.WEIGHT) {
+      const targetUnit = animal.weight_unit || 'g';
+      const grams = log.weight_grams ?? parseLegacyWeightToGrams(log.value);
+      if (grams !== null && !isNaN(grams)) {
+        return formatWeightDisplay(grams, targetUnit as 'g' | 'kg' | 'oz' | 'lbs_oz');
+      }
+    }
+    
     return isGroup ? `${log.value} (Mob Total)` : log.value;
   };
 

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useTransition, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Animal, AnimalCategory, Task, LogType, OperationalList } from '../../types';
 import { CalendarClock, Plus, Calendar, Trash2, Filter, Utensils, RefreshCw, Loader2, History, ArrowRight, Copy } from 'lucide-react';
+import { getUKLocalDate } from '../../services/temporalService';
 import { useFeedingScheduleData } from './useFeedingScheduleData';
 
 const FeedingSchedule: React.FC = () => {
@@ -48,7 +49,7 @@ const FeedingSchedule: React.FC = () => {
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
   
   const [intervalDays, setIntervalDays] = useState(3);
-  const [intervalStart, setIntervalStart] = useState(new Date().toISOString().split('T')[0]);
+  const [intervalStart, setIntervalStart] = useState(getUKLocalDate());
   const [occurrences, setOccurrences] = useState(5);
 
   const filteredAnimals = animals.filter(a => a.category === selectedCategory && !a.archived);
@@ -396,7 +397,7 @@ const FeedingSchedule: React.FC = () => {
                                         if (!animal) return null;
                                         
                                         const dateObj = new Date(task.due_date);
-                                        const isToday = (task.due_date) === new Date().toISOString().split('T')[0];
+                                        const isToday = (task.due_date) === getUKLocalDate();
 
                                         return (
                                             <div key={task.id} className={`flex items-center bg-white border border-slate-200 rounded-lg p-2.5 hover:bg-slate-50 transition-colors group ${task.completed ? 'opacity-60' : ''}`}>

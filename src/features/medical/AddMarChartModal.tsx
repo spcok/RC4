@@ -6,14 +6,14 @@ import { X } from 'lucide-react';
 import { Animal, MARChart } from '../../types';
 
 const schema = z.object({
-  animal_id: z.string().min(1, 'Animal is required'),
+  animalId: z.string().min(1, 'Animal is required'),
   medication: z.string().min(1, 'Medication name is required'),
   dosage: z.string().min(1, 'Dosage is required'),
   frequency: z.string().min(1, 'Frequency is required'),
-  start_date: z.string().min(1, 'Start date is required'),
-  end_date: z.string().optional(),
+  startDate: z.string().min(1, 'Start date is required'),
+  endDate: z.string().optional(),
   instructions: z.string().min(1, 'Instructions are required'),
-  staff_initials: z.string().min(2, 'Initials are required'),
+  staffInitials: z.string().min(2, 'Initials are required'),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -21,7 +21,7 @@ type FormData = z.infer<typeof schema>;
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (chart: Omit<MARChart, 'id' | 'animal_name' | 'administered_dates' | 'status'>) => Promise<void>;
+  onSave: (chart: Omit<MARChart, 'id' | 'animalName' | 'administeredDates' | 'status'>) => Promise<void>;
   animals: Animal[];
 }
 
@@ -29,7 +29,7 @@ export const AddMarChartModal: React.FC<Props> = ({ isOpen, onClose, onSave, ani
   const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      start_date: new Date().toISOString().split('T')[0],
+      startDate: new Date().toISOString().split('T')[0],
     }
   });
 
@@ -51,11 +51,11 @@ export const AddMarChartModal: React.FC<Props> = ({ isOpen, onClose, onSave, ani
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700">Animal</label>
-            <select {...register('animal_id')} className="w-full mt-1 border border-slate-300 rounded-lg p-2">
+            <select {...register('animalId')} className="w-full mt-1 border border-slate-300 rounded-lg p-2">
               <option value="">Select an animal</option>
               {animals?.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
-            {errors.animal_id && <p className="text-red-500 text-xs">{errors.animal_id.message}</p>}
+            {errors.animalId && <p className="text-red-500 text-xs">{errors.animalId.message}</p>}
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700">Medication Name</label>
@@ -79,17 +79,17 @@ export const AddMarChartModal: React.FC<Props> = ({ isOpen, onClose, onSave, ani
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700">Staff Initials <span className="text-red-500">*</span></label>
-            <input type="text" {...register('staff_initials')} className="w-full mt-1 border border-slate-300 rounded-lg p-2" required />
-            {errors.staff_initials && <p className="text-red-500 text-xs">{errors.staff_initials.message}</p>}
+            <input type="text" {...register('staffInitials')} className="w-full mt-1 border border-slate-300 rounded-lg p-2" required />
+            {errors.staffInitials && <p className="text-red-500 text-xs">{errors.staffInitials.message}</p>}
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700">Start Date</label>
-            <input type="date" {...register('start_date')} className="w-full mt-1 border border-slate-300 rounded-lg p-2" />
-            {errors.start_date && <p className="text-red-500 text-xs">{errors.start_date.message}</p>}
+            <input type="date" {...register('startDate')} className="w-full mt-1 border border-slate-300 rounded-lg p-2" />
+            {errors.startDate && <p className="text-red-500 text-xs">{errors.startDate.message}</p>}
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700">End Date (Optional)</label>
-            <input type="date" {...register('end_date')} className="w-full mt-1 border border-slate-300 rounded-lg p-2" />
+            <input type="date" {...register('endDate')} className="w-full mt-1 border border-slate-300 rounded-lg p-2" />
           </div>
           <button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm font-medium flex items-center justify-center gap-2 disabled:bg-slate-400">
             {isSubmitting ? 'Saving...' : 'Save Chart'}

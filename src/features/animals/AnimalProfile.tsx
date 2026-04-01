@@ -284,7 +284,13 @@ export default function AnimalProfile({ animalId, onBack }: Props) {
           </div>
         )}
         {activeTab === 'medical' && <MedicalRecords animalId={animal.id} variant="quick-view" />}
-        {activeTab === 'husbandry' && <HusbandryLogs animal={animal} />}
+        {activeTab === 'husbandry' && (
+          <HusbandryLogs 
+            animalId={animal.id} 
+            weightUnit={animal.weight_unit || 'g'} 
+            animal={animal} 
+          />
+        )}
       </div>
     </div>
   );

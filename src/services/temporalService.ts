@@ -39,3 +39,32 @@ export const evaluateZlaCompliance = (lastSyncIsoString: string | null) => {
     daysOffline
   };
 };
+
+/**
+ * Returns the current date in YYYY-MM-DD format strictly for the UK.
+ */
+export const getUKLocalDate = (): string => {
+  return Temporal.Now.zonedDateTimeISO('Europe/London').toPlainDate().toString();
+};
+
+/**
+ * Returns the current time in HH:MM format strictly for the UK.
+ */
+export const getUKLocalTime = (): string => {
+  return Temporal.Now.zonedDateTimeISO('Europe/London').toPlainTime().toString({ smallestUnit: 'minute' });
+};
+
+/**
+ * Takes a UTC ISO string from Supabase and converts it to a local UK time string (HH:MM), accounting for DST.
+ */
+export const formatToUKTime = (isoString: string): string => {
+  if (!isoString) return '';
+  try {
+    const instant = Temporal.Instant.from(isoString);
+    const zonedDateTime = instant.toZonedDateTimeISO('Europe/London');
+    return zonedDateTime.toPlainTime().toString({ smallestUnit: 'minute' });
+  } catch (error) {
+    console.error("Error formatting to UK time:", error);
+    return '';
+  }
+};

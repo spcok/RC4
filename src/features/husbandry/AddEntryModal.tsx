@@ -7,6 +7,7 @@ import { getMaidstoneDailyWeather } from '../../services/weatherService';
 import { useOperationalLists } from '../../hooks/useOperationalLists';
 import { convertToGrams, convertFromGrams } from '../../services/weightUtils';
 import { safeJsonParse } from '../../lib/jsonUtils';
+import { getUKLocalTime } from '../../services/temporalService';
 
 interface AddEntryModalProps {
   isOpen: boolean;
@@ -66,7 +67,7 @@ const AddEntryModal: React.FC<AddEntryModalProps> = ({
   });
   
   const [feedTime, setFeedTime] = useState(() => {
-    const defaultTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    const defaultTime = getUKLocalTime();
     if (existingLog?.log_type === LogType.FEED && existingLog.notes) {
       const parsed = safeJsonParse<{ feedTime?: string }>(existingLog.notes, { feedTime: defaultTime });
       return parsed.feedTime || defaultTime;
@@ -140,9 +141,11 @@ const AddEntryModal: React.FC<AddEntryModalProps> = ({
     }
 
     if (logType === LogType.TEMPERATURE) {
-      if (animal.category === AnimalCategory.EXOTICS && (baskingTemp === '' || coolTemp === '')) {
-        return setError('Both Basking and Cool temperatures are required for exotics.');
-      } else if (animal.category !== AnimalCategory.EXOTICS && temperature === '') {
+      if (animal.category === AnimalCategory.EXOTICS && !animal.ambient_temp_only) {
+        if (baskingTemp === '' || coolTemp === '') {
+          return setError('Both Basking and Cool temperatures are required for exotics.');
+        }
+      } else if (temperature === '') {
         return setError('Temperature is required.');
       }
     }
@@ -179,7 +182,7 @@ const AddEntryModal: React.FC<AddEntryModalProps> = ({
       }
 
       if (logType === LogType.TEMPERATURE) {
-        if (animal.category === AnimalCategory.EXOTICS && baskingTemp !== '' && coolTemp !== '') {
+        if (animal.category === AnimalCategory.EXOTICS && !animal.ambient_temp_only && baskingTemp !== '' && coolTemp !== '') {
           entry.basking_temp_c = Number(baskingTemp);
           entry.cool_temp_c = Number(coolTemp);
           entry.value = `${baskingTemp}°C | ${coolTemp}°C`;
@@ -317,7 +320,7 @@ const AddEntryModal: React.FC<AddEntryModalProps> = ({
           </div>
         );
       case LogType.TEMPERATURE:
-        if (animal.category === AnimalCategory.EXOTICS) {
+        if (animal.category === AnimalCategory.EXOTICS && !animal.ambient_temp_only) {
           return (
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -338,7 +341,7 @@ const AddEntryModal: React.FC<AddEntryModalProps> = ({
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Temperature (°C)</label>
                 <input type="number" value={temperature} onChange={e => setTemperature(e.target.value ? Number(e.target.value) : '')} className="w-full p-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-emerald-500 focus:ring-0 transition-all font-bold" required disabled={isWeatherLoading} />
               </div>
-              {animal.category === AnimalCategory.MAMMALS && (
+              {(animal.category === AnimalCategory.MAMMALS || (animal.category === AnimalCategory.EXOTICS && animal.ambient_temp_only)) && (
                 <button type="button" onClick={handleFetchWeatherInsideModal} disabled={isWeatherLoading} className="px-4 py-3 bg-sky-50 text-sky-700 border-2 border-sky-200 rounded-xl font-bold text-xs uppercase hover:bg-sky-100 flex items-center gap-2 transition-colors disabled:opacity-50">
                   {isWeatherLoading ? <Loader2 size={14} className="animate-spin" /> : '☁️ Fetch 13:00'}
                 </button>

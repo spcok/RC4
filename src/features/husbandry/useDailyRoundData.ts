@@ -36,8 +36,8 @@ export function useDailyRoundData(viewDate: string) {
                     { data: roundsData }
                 ] = await Promise.all([
                     supabase.from('animals').select('*'),
-                    supabase.from('daily_logs').select('*'),
-                    supabase.from('daily_rounds').select('*')
+                    supabase.from('daily_logs').select('*').eq('log_date', viewDate),
+                    supabase.from('daily_rounds').select('*').eq('date', viewDate)
                 ]);
 
                 if (isMounted) {
@@ -56,7 +56,7 @@ export function useDailyRoundData(viewDate: string) {
         return () => { isMounted = false; };
     }, [viewDate]);
 
-    const currentRound = useMemo(() => liveRounds.find(r => r.shift === roundType && r.section === activeTab), [liveRounds, roundType, activeTab]);
+    const currentRound = useMemo(() => liveRounds.find(r => r.shift === roundType && r.section === activeTab && r.date === viewDate), [liveRounds, roundType, activeTab, viewDate]);
     const isPastRound = currentRound?.status?.toLowerCase() === 'completed';
 
     useEffect(() => {

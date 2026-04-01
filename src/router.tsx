@@ -2,23 +2,31 @@ import { createRouter, createRoute, createRootRoute, redirect, Outlet } from '@t
 import { AuthGuard } from './components/auth/AuthGuard';
 import Layout from './components/layout/Layout';
 import LoginScreen from './features/auth/LoginScreen';
+
+// Physical File Map Imports
 import DashboardContainer from './features/dashboard/DashboardContainer';
 import AnimalsList from './features/animals/AnimalsList';
 import AnimalProfile from './features/animals/AnimalProfile';
-import HusbandryLogs from './features/husbandry/HusbandryLogs';
-import HusbandryTasks from './features/husbandry/Tasks';
-import DailyRounds from './features/husbandry/DailyRounds';
-import FeedingSchedules from './features/husbandry/FeedingSchedule';
 import MedicalRecords from './features/medical/MedicalRecords';
-import FlightRecords from './features/logistics/FlightRecords';
 import Movements from './features/logistics/Movements';
+import FlightRecords from './features/logistics/FlightRecords';
 import StaffRota from './features/staff/StaffRota';
 import Timesheets from './features/staff/Timesheets';
 import Holidays from './features/staff/Holidays';
-import ReportsDashboard from './features/reports/ReportsDashboard';
 import MissingRecords from './features/compliance/MissingRecords';
+import ReportsDashboard from './features/reports/ReportsDashboard';
 import HelpSupport from './features/help/HelpSupport';
 import SettingsLayout from './features/settings/SettingsLayout';
+import DailyLog from './features/husbandry/DailyLog';
+import DailyRounds from './features/husbandry/DailyRounds';
+import Tasks from './features/husbandry/Tasks';
+import FeedingSchedule from './features/husbandry/FeedingSchedule';
+import SiteMaintenance from './features/safety/tabs/SiteMaintenance';
+import FirstAid from './features/safety/tabs/FirstAid';
+import Incidents from './features/safety/tabs/Incidents';
+import SafetyDrills from './features/safety/tabs/SafetyDrills';
+
+// Settings Tabs (Preserved for SettingsLayout functionality)
 import OrgProfile from './features/settings/tabs/OrgProfile';
 import Directory from './features/settings/tabs/Directory';
 import OperationalLists from './features/settings/tabs/OperationalLists';
@@ -28,10 +36,6 @@ import ZLADocuments from './features/settings/tabs/ZLADocuments';
 import BugReports from './features/settings/tabs/BugReports';
 import Intelligence from './features/settings/tabs/Intelligence';
 import Changelog from './features/settings/tabs/Changelog';
-import Maintenance from './features/safety/tabs/SiteMaintenance';
-import Incidents from './features/safety/tabs/Incidents';
-import FirstAid from './features/safety/tabs/FirstAid';
-import SafetyDrills from './features/safety/tabs/SafetyDrills';
 
 const rootRoute = createRootRoute({
   component: () => <Outlet />,
@@ -67,6 +71,7 @@ const dashboardRoute = createRoute({
   component: DashboardContainer,
 });
 
+// Animals
 const animalsRoute = createRoute({
   getParentRoute: () => authRoute,
   path: '/animals',
@@ -84,133 +89,141 @@ const animalProfileRoute = createRoute({
   component: AnimalProfile,
 });
 
+// Husbandry Layout (Pathless)
 const husbandryRoute = createRoute({
   getParentRoute: () => authRoute,
   id: 'husbandry-layout',
 });
 
-const husbandryIndexRoute = createRoute({
+const dailyLogRoute = createRoute({
   getParentRoute: () => husbandryRoute,
-  path: '/husbandry-logs',
-  component: HusbandryLogs,
+  path: '/daily-log',
+  component: DailyLog,
 });
 
-const husbandryTasksRoute = createRoute({
-  getParentRoute: () => husbandryRoute,
-  path: '/tasks',
-  component: HusbandryTasks,
-});
-
-const husbandryDailyRoundsRoute = createRoute({
+const dailyRoundsRoute = createRoute({
   getParentRoute: () => husbandryRoute,
   path: '/daily-rounds',
   component: DailyRounds,
 });
 
-const husbandryFeedingSchedulesRoute = createRoute({
+const tasksRoute = createRoute({
   getParentRoute: () => husbandryRoute,
-  path: '/feeding-schedules',
-  component: FeedingSchedules,
+  path: '/tasks',
+  component: Tasks,
 });
 
+const feedingScheduleRoute = createRoute({
+  getParentRoute: () => husbandryRoute,
+  path: '/feeding-schedule',
+  component: FeedingSchedule,
+});
+
+// Medical
 const medicalRoute = createRoute({
   getParentRoute: () => authRoute,
   path: '/medical',
   component: MedicalRecords,
 });
 
+// Logistics Layout (Pathless)
 const logisticsRoute = createRoute({
   getParentRoute: () => authRoute,
   id: 'logistics-layout',
 });
 
-const logisticsFlightsRoute = createRoute({
-  getParentRoute: () => logisticsRoute,
-  path: '/flights',
-  component: FlightRecords,
-});
-
-const logisticsMovementsRoute = createRoute({
+const movementsRoute = createRoute({
   getParentRoute: () => logisticsRoute,
   path: '/movements',
   component: Movements,
 });
 
+const flightsRoute = createRoute({
+  getParentRoute: () => logisticsRoute,
+  path: '/flights',
+  component: FlightRecords,
+});
+
+// Staff Layout (Pathless)
 const staffRoute = createRoute({
   getParentRoute: () => authRoute,
   id: 'staff-layout',
 });
 
-const staffRotaRoute = createRoute({
+const rotaRoute = createRoute({
   getParentRoute: () => staffRoute,
-  path: '/rota',
+  path: '/staff-rota',
   component: StaffRota,
 });
 
-const staffTimesheetsRoute = createRoute({
+const timesheetsRoute = createRoute({
   getParentRoute: () => staffRoute,
-  path: '/timesheets',
+  path: '/staff-timesheets',
   component: Timesheets,
 });
 
-const staffHolidaysRoute = createRoute({
+const holidaysRoute = createRoute({
   getParentRoute: () => staffRoute,
-  path: '/holidays',
+  path: '/staff-holidays',
   component: Holidays,
 });
 
+// Reports Layout (Pathless)
 const reportsRoute = createRoute({
   getParentRoute: () => authRoute,
   id: 'reports-layout',
 });
 
-const reportsIndexRoute = createRoute({
+const reportsDashboardRoute = createRoute({
   getParentRoute: () => reportsRoute,
   path: '/reports',
   component: ReportsDashboard,
 });
 
-const reportsComplianceRoute = createRoute({
+const complianceRoute = createRoute({
   getParentRoute: () => reportsRoute,
   path: '/compliance',
   component: MissingRecords,
 });
 
+// Help
 const helpRoute = createRoute({
   getParentRoute: () => authRoute,
   path: '/help',
   component: HelpSupport,
 });
 
+// Safety Layout (Pathless)
 const safetyRoute = createRoute({
   getParentRoute: () => authRoute,
   id: 'safety-layout',
 });
 
-const safetyMaintenanceRoute = createRoute({
+const maintenanceRoute = createRoute({
   getParentRoute: () => safetyRoute,
-  path: '/maintenance',
-  component: Maintenance,
+  path: '/site-maintenance',
+  component: SiteMaintenance,
 });
 
-const safetyIncidentsRoute = createRoute({
+const incidentsRoute = createRoute({
   getParentRoute: () => safetyRoute,
   path: '/incidents',
   component: Incidents,
 });
 
-const safetyFirstAidRoute = createRoute({
+const firstAidRoute = createRoute({
   getParentRoute: () => safetyRoute,
   path: '/first-aid',
   component: FirstAid,
 });
 
-const safetyDrillsRoute = createRoute({
+const drillsRoute = createRoute({
   getParentRoute: () => safetyRoute,
-  path: '/drills',
+  path: '/safety-drills',
   component: SafetyDrills,
 });
 
+// Settings
 const settingsRoute = createRoute({
   getParentRoute: () => authRoute,
   path: '/settings',
@@ -286,28 +299,31 @@ const routeTree = rootRoute.addChildren([
     dashboardRoute,
     animalsRoute.addChildren([animalsIndexRoute, animalProfileRoute]),
     husbandryRoute.addChildren([
-      husbandryIndexRoute,
-      husbandryTasksRoute,
-      husbandryDailyRoundsRoute,
-      husbandryFeedingSchedulesRoute,
+      dailyLogRoute,
+      dailyRoundsRoute,
+      tasksRoute,
+      feedingScheduleRoute,
     ]),
     medicalRoute,
     logisticsRoute.addChildren([
-      logisticsFlightsRoute,
-      logisticsMovementsRoute,
+      movementsRoute,
+      flightsRoute,
     ]),
     staffRoute.addChildren([
-      staffRotaRoute,
-      staffTimesheetsRoute,
-      staffHolidaysRoute,
+      rotaRoute,
+      timesheetsRoute,
+      holidaysRoute,
     ]),
-    reportsRoute.addChildren([reportsIndexRoute, reportsComplianceRoute]),
+    reportsRoute.addChildren([
+      reportsDashboardRoute,
+      complianceRoute,
+    ]),
     helpRoute,
     safetyRoute.addChildren([
-      safetyMaintenanceRoute,
-      safetyIncidentsRoute,
-      safetyFirstAidRoute,
-      safetyDrillsRoute,
+      maintenanceRoute,
+      incidentsRoute,
+      firstAidRoute,
+      drillsRoute,
     ]),
     settingsRoute.addChildren([
       settingsIndexRoute,

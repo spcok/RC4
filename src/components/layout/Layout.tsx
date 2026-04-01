@@ -8,6 +8,7 @@ export function useLayoutContext() {
 }
 import { usePermissions } from '../../hooks/usePermissions';
 import { useAuthStore } from '../../store/authStore';
+import { useSupabaseRealtime } from '../../hooks/useSupabaseRealtime';
 import { 
   LayoutDashboard, ClipboardList, CheckSquare, CalendarDays, 
   Stethoscope, ArrowRightLeft, Plane, Wrench, AlertTriangle, 
@@ -27,7 +28,7 @@ const NAVIGATION_GROUPS = [
   {
     title: 'Husbandry',
     items: [
-      { name: 'Daily Log', path: '/husbandry-logs', icon: ClipboardList, permKey: 'view_daily_logs' },
+      { name: 'Daily Logs', path: '/daily-log', icon: ClipboardList, permKey: 'view_daily_logs' },
       { name: 'Daily Rounds', path: '/daily-rounds', icon: CheckSquare, permKey: 'view_daily_rounds' },
       { name: 'Tasks', path: '/tasks', icon: CheckSquare, permKey: 'view_tasks' },
       { name: 'Feeding Schedule', path: '/feeding-schedule', icon: CalendarDays, permKey: null },
@@ -43,14 +44,14 @@ const NAVIGATION_GROUPS = [
   {
     title: 'Logistics',
     items: [
-      { name: 'Movements', path: '/logistics/movements', icon: ArrowRightLeft, permKey: 'view_movements' },
-      { name: 'Flight Records', path: '/logistics/flights', icon: Plane, permKey: null },
+      { name: 'Movements', path: '/movements', icon: ArrowRightLeft, permKey: 'view_movements' },
+      { name: 'Flight Records', path: '/flights', icon: Plane, permKey: null },
     ]
   },
   {
     title: 'Safety',
     items: [
-      { name: 'Maintenance', path: '/maintenance', icon: Wrench, permKey: 'view_maintenance' },
+      { name: 'Maintenance', path: '/site-maintenance', icon: Wrench, permKey: 'view_maintenance' },
       { name: 'Incidents', path: '/incidents', icon: AlertTriangle, permKey: 'view_incidents' },
       { name: 'First Aid', path: '/first-aid', icon: Cross, permKey: 'view_first_aid' },
       { name: 'Safety Drills', path: '/safety-drills', icon: ShieldAlert, permKey: 'view_safety_drills' },
@@ -59,15 +60,15 @@ const NAVIGATION_GROUPS = [
   {
     title: 'Staff',
     items: [
-      { name: 'Timesheets', path: '/staff/timesheets', icon: Clock, permKey: 'submit_timesheets' },
-      { name: 'Holidays', path: '/staff/holidays', icon: Calendar, permKey: 'request_holidays' },
-      { name: 'Rota', path: '/staff/rota', icon: Users, permKey: null },
+      { name: 'Timesheets', path: '/staff-timesheets', icon: Clock, permKey: 'submit_timesheets' },
+      { name: 'Holidays', path: '/staff-holidays', icon: Calendar, permKey: 'request_holidays' },
+      { name: 'Rota', path: '/staff-rota', icon: Users, permKey: null },
     ]
   },
   {
     title: 'System',
     items: [
-      { name: 'Compliance', path: '/reports/compliance', icon: FileCheck, permKey: 'view_missing_records' },
+      { name: 'Compliance', path: '/compliance', icon: FileCheck, permKey: 'view_missing_records' },
       { name: 'Reports', path: '/reports', icon: BarChart2, permKey: 'generate_reports' },
       { name: 'Settings', path: '/settings', icon: Settings, permKey: 'view_settings' },
       { name: 'Help', path: '/help', icon: HelpCircle, permKey: null },
@@ -76,6 +77,7 @@ const NAVIGATION_GROUPS = [
 ];
 
 export default function Layout() {
+  useSupabaseRealtime();
   const navigate = useNavigate();
   const location = useLocation();
   const currentUser = useAuthStore(s => s.currentUser);
@@ -92,17 +94,17 @@ export default function Layout() {
     let isAllowed = true;
 
     if (path.startsWith('/medical') && !permissions.view_medical) isAllowed = false;
-    else if (path.startsWith('/husbandry') && !permissions.view_daily_logs) isAllowed = false;
+    else if (path.startsWith('/daily-log') && !permissions.view_daily_logs) isAllowed = false;
     else if (path.startsWith('/tasks') && !permissions.view_tasks) isAllowed = false;
     else if (path.startsWith('/daily-rounds') && !permissions.view_daily_rounds) isAllowed = false;
-    else if (path.startsWith('/logistics/movements') && !permissions.view_movements) isAllowed = false;
-    else if (path.startsWith('/maintenance') && !permissions.view_maintenance) isAllowed = false;
+    else if (path.startsWith('/movements') && !permissions.view_movements) isAllowed = false;
+    else if (path.startsWith('/site-maintenance') && !permissions.view_maintenance) isAllowed = false;
     else if (path.startsWith('/incidents') && !permissions.view_incidents) isAllowed = false;
     else if (path.startsWith('/first-aid') && !permissions.view_first_aid) isAllowed = false;
     else if (path.startsWith('/safety-drills') && !permissions.view_safety_drills) isAllowed = false;
-    else if (path.startsWith('/staff/timesheets') && !permissions.submit_timesheets) isAllowed = false;
-    else if (path.startsWith('/staff/holidays') && !permissions.request_holidays) isAllowed = false;
-    else if (path.startsWith('/reports/compliance') && !permissions.view_missing_records) isAllowed = false;
+    else if (path.startsWith('/staff-timesheets') && !permissions.submit_timesheets) isAllowed = false;
+    else if (path.startsWith('/staff-holidays') && !permissions.request_holidays) isAllowed = false;
+    else if (path.startsWith('/compliance') && !permissions.view_missing_records) isAllowed = false;
     else if (path.startsWith('/reports') && !permissions.generate_reports) isAllowed = false;
     else if (path.startsWith('/settings') && !permissions.view_settings) isAllowed = false;
 
