@@ -3,35 +3,11 @@ import { v4 as uuidv4 } from 'uuid';
 import { Animal, AnimalCategory, Task, LogType, OperationalList } from '../../types';
 import { CalendarClock, Plus, Calendar, Trash2, Filter, Utensils, RefreshCw, Loader2, History, ArrowRight, Copy } from 'lucide-react';
 import { getUKLocalDate } from '../../services/temporalService';
-import { useFeedingScheduleData } from './useFeedingScheduleData';
+import { useFoodOptions } from './hooks/useFoodOptions';
 
 const FeedingSchedule: React.FC = () => {
   const { animals, tasks, addTasks, deleteTask, isLoading } = useFeedingScheduleData();
-
-  const [foodOptions, setFoodOptions] = useState<OperationalList[]>([]);
-
-  useEffect(() => {
-    let isMounted = true;
-    
-
-    const loadData = async () => {
-      try {
-        console.log("☢️ [Zero Dawn] Food options loading is neutralized.");
-        if (isMounted) {
-          setFoodOptions([]);
-        }
-      } catch (err) {
-        console.error('Failed to load food options:', err);
-      }
-    };
-
-    loadData();
-
-    return () => {
-      isMounted = false;
-      // if (sub) sub.unsubscribe();
-    };
-  }, []);
+  const { data: foodOptions = [] } = useFoodOptions();
 
   const [selectedCategory, setSelectedCategory] = useState<AnimalCategory>(AnimalCategory.EXOTICS);
   const [selectedAnimalId, setSelectedAnimalId] = useState('');

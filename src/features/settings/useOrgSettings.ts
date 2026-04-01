@@ -24,12 +24,9 @@ export function useOrgSettings() {
         .from('organisations')
         .select('*')
         .eq('id', 'profile')
-        .single();
+        .maybeSingle();
 
-      if (error) {
-        if (error.code === 'PGRST116') return DEFAULT_SETTINGS;
-        throw error;
-      }
+      if (error) throw error;
       
       return (data as OrgProfileSettings) || DEFAULT_SETTINGS;
     },

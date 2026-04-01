@@ -1,44 +1,40 @@
-import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '../../lib/supabase';
 import { ZLADocument } from '../../types';
 
-export function useZLADocsData() {
-  const [documents, setDocuments] = useState<ZLADocument[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export const useZLADocsData = () => {
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    let isMounted = true;
-    
+  const { data: documents = [], isLoading } = useQuery({
+    queryKey: ['zla_documents'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('zla_documents').select('*');
+      if (error) throw error;
+      return (data || []) as ZLADocument[];
+    }
+  });
 
-    const loadDocs = async () => {
-      try {
-        console.log("☢️ [Zero Dawn] ZLA docs loading is neutralized.");
-        if (isMounted) {
-          setDocuments([]);
-          setIsLoading(false);
-        }
-      } catch (err) {
-        console.error('Failed to load ZLA docs data:', err);
-        if (isMounted) setIsLoading(false);
-      }
-    };
+  const addDocumentMutation = useMutation({
+    mutationFn: async (doc: Omit<ZLADocument, 'id'>) => {
+      const { data, error } = await supabase.from('zla_documents').insert([doc]).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['zla_documents'] })
+  });
 
-    loadDocs();
+  const deleteDocumentMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('zla_documents').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['zla_documents'] })
+  });
 
-    return () => {
-      isMounted = false;
-      // if (sub) sub.unsubscribe();
-    };
-  }, []);
-
-  const addDocument = async (doc: Omit<ZLADocument, 'id'>) => {
-    console.log("☢️ [Zero Dawn] Add document is neutralized.", doc);
-    alert("Database engine is neutralized. Document cannot be added.");
+  return {
+    documents,
+    isLoading,
+    addDocument: addDocumentMutation.mutateAsync,
+    deleteDocument: deleteDocumentMutation.mutateAsync
   };
-
-  const deleteDocument = async (id: string) => {
-    console.log("☢️ [Zero Dawn] Delete document is neutralized.", id);
-    alert("Database engine is neutralized. Document cannot be deleted.");
-  };
-
-  return { documents, isLoading, addDocument, deleteDocument };
-}
+};

@@ -1,49 +1,50 @@
-import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '../../lib/supabase';
 import { Contact } from '../../types';
 
-export function useDirectoryData() {
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export const useDirectoryData = () => {
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    let isMounted = true;
-    
+  const { data: contacts = [], isLoading } = useQuery({
+    queryKey: ['directory_contacts'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('directory_contacts').select('*');
+      if (error) throw error;
+      return (data || []) as Contact[];
+    }
+  });
 
-    const loadContacts = async () => {
-      try {
-        console.log("☢️ [Zero Dawn] Directory data loading is neutralized.");
-        if (isMounted) {
-          setContacts([]);
-          setIsLoading(false);
-        }
-      } catch (err) {
-        console.error('Failed to load directory data:', err);
-        if (isMounted) setIsLoading(false);
-      }
-    };
+  const addContactMutation = useMutation({
+    mutationFn: async (contact: Omit<Contact, 'id'>) => {
+      const { data, error } = await supabase.from('directory_contacts').insert([contact]).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['directory_contacts'] })
+  });
 
-    loadContacts();
+  const updateContactMutation = useMutation({
+    mutationFn: async (contact: Contact) => {
+      const { data, error } = await supabase.from('directory_contacts').update(contact).eq('id', contact.id).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['directory_contacts'] })
+  });
 
-    return () => {
-      isMounted = false;
-      // if (sub) sub.unsubscribe();
-    };
-  }, []);
+  const deleteContactMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('directory_contacts').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['directory_contacts'] })
+  });
 
-  const addContact = async (contact: Omit<Contact, 'id'>) => {
-    console.log("☢️ [Zero Dawn] Add contact is neutralized.", contact);
-    alert("Database engine is neutralized. Contact cannot be added.");
+  return {
+    contacts,
+    isLoading,
+    addContact: addContactMutation.mutateAsync,
+    updateContact: updateContactMutation.mutateAsync,
+    deleteContact: deleteContactMutation.mutateAsync
   };
-
-  const updateContact = async (contact: Contact) => {
-    console.log("☢️ [Zero Dawn] Update contact is neutralized.", contact);
-    alert("Database engine is neutralized. Contact cannot be updated.");
-  };
-
-  const deleteContact = async (id: string) => {
-    console.log("☢️ [Zero Dawn] Delete contact is neutralized.", id);
-    alert("Database engine is neutralized. Contact cannot be deleted.");
-  };
-
-  return { contacts, isLoading, addContact, updateContact, deleteContact };
-}
+};
