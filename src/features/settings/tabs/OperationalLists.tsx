@@ -139,7 +139,7 @@ const OperationalLists: React.FC = () => {
         </div>
         
         <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
-          {[AnimalCategory.OWLS, AnimalCategory.RAPTORS, AnimalCategory.MAMMALS, AnimalCategory.REPTILES].map((cat) => (
+          {[AnimalCategory.OWLS, AnimalCategory.RAPTORS, AnimalCategory.MAMMALS, AnimalCategory.EXOTICS].map((cat) => (
             <button
               key={cat}
               onClick={() => setListSection(cat)}
@@ -149,7 +149,7 @@ const OperationalLists: React.FC = () => {
                   : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              {cat === AnimalCategory.REPTILES ? 'EXOTICS' : cat}
+              {cat}
             </button>
           ))}
         </div>
@@ -172,7 +172,7 @@ const OperationalLists: React.FC = () => {
         <div>
           <h4 className="text-sm font-bold text-amber-900">Pro Tip: Data Consistency</h4>
           <p className="text-xs text-amber-700 mt-1">
-            Food types and feed methods are scoped to the selected animal category (e.g. {listSection === AnimalCategory.REPTILES ? 'EXOTICS' : listSection}). 
+            Food types and feed methods are scoped to the selected animal category (e.g. {listSection}). 
             Event types and locations are global and available across all categories.
           </p>
         </div>

@@ -49,10 +49,14 @@ export function usePermissions(): Record<string, boolean | string> & { isLoading
         .from('role_permissions')
         .select('*')
         .eq('role', currentRole.toLowerCase())
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('❌ [Permissions] Fetch failed:', error);
+        throw error;
+      }
+
+      if (!data) {
         return { ...lockedPermissions, role: currentRole };
       }
 

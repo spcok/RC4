@@ -15,7 +15,7 @@ export const DEFAULT_FEED_METHODS: Record<string, string[]> = {
   [AnimalCategory.OWLS]: ['Hand Feed', 'Bowl', 'Toss', 'Lure'],
   [AnimalCategory.RAPTORS]: ['Hand Feed', 'Bowl', 'Toss', 'Lure'],
   [AnimalCategory.MAMMALS]: ['Bowl', 'Scatter', 'Puzzle'],
-  [AnimalCategory.REPTILES]: ['Tong Feed', 'Bowl']
+  [AnimalCategory.EXOTICS]: ['Tong Feed', 'Bowl']
 };
 
 export const DEFAULT_EVENT_TYPES = [
