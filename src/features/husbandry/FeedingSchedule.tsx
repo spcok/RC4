@@ -1,13 +1,20 @@
-import React, { useState, useMemo, useTransition, useEffect } from 'react';
-import { v4 as uuidv4 } from 'uuid';
-import { Animal, AnimalCategory, Task, LogType, OperationalList } from '../../types';
+import React, { useState, useMemo, useTransition } from 'react';
+import { Animal, AnimalCategory, Task, LogType } from '../../types';
 import { CalendarClock, Plus, Calendar, Trash2, Filter, Utensils, RefreshCw, Loader2, History, ArrowRight, Copy } from 'lucide-react';
 import { getUKLocalDate } from '../../services/temporalService';
 import { useFoodOptions } from './hooks/useFoodOptions';
+import { useFeedingScheduleData } from './useFeedingScheduleData';
+import { useAnimalsData } from '../animals/useAnimalsData';
+import { useTaskData } from './useTaskData';
 
 const FeedingSchedule: React.FC = () => {
-  const { animals, tasks, addTasks, deleteTask, isLoading } = useFeedingScheduleData();
+  const [viewDate, setViewDate] = useState(getUKLocalDate());
+  const { data: feedingLogs = [], isLoading: logsLoading } = useFeedingScheduleData(viewDate);
+  const { animals, isLoading: animalsLoading } = useAnimalsData();
+  const { tasks, addTask, deleteTask, isLoading: tasksLoading } = useTaskData();
   const { data: foodOptions = [] } = useFoodOptions();
+
+  const isLoading = animalsLoading || tasksLoading || logsLoading;
 
   const [selectedCategory, setSelectedCategory] = useState<AnimalCategory>(AnimalCategory.EXOTICS);
   const [selectedAnimalId, setSelectedAnimalId] = useState('');
@@ -61,19 +68,18 @@ const FeedingSchedule: React.FC = () => {
 
           const notes = `${quantity} ${foodType}${withCalciDust ? ' + Calci-dust' : ''}`;
           
-          const newTasks: Task[] = datesToSchedule.map(date => ({
-              id: uuidv4(),
+          const newTasks: Partial<Task>[] = datesToSchedule.map(date => ({
               animal_id: selectedAnimalId,
               title: `Feed ${animal.name}`,
               type: LogType.FEED,
               due_date: date,
               completed: false,
               notes: notes,
-              created_at: new Date().toISOString()
-          } as unknown as Task));
+          }));
 
-          addTasks(newTasks);
-          setSelectedDates([]);
+          Promise.all(newTasks.map(t => addTask(t))).then(() => {
+              setSelectedDates([]);
+          });
       });
   };
 
@@ -123,12 +129,31 @@ const FeedingSchedule: React.FC = () => {
   };
 
   const filteredTasks = useMemo(() => {
-    return tasks
+    const baseTasks = tasks
         .filter(t => (t.type === LogType.FEED))
         .filter(t => viewScope === 'upcoming' ? !t.completed : t.completed)
-        .filter(t => viewFilterAnimalId === 'ALL' || (t.animal_id === viewFilterAnimalId))
-        .sort((a, b) => viewScope === 'upcoming' ? (a.due_date).localeCompare(b.due_date) : (b.due_date).localeCompare(a.due_date));
-  }, [tasks, viewFilterAnimalId, viewScope]);
+        .filter(t => viewFilterAnimalId === 'ALL' || (t.animal_id === viewFilterAnimalId));
+
+    if (viewScope === 'history') {
+        // Map feedingLogs to Task-like structure for the UI
+        const mappedLogs = feedingLogs
+            .filter(log => viewFilterAnimalId === 'ALL' || log.animal_id === viewFilterAnimalId)
+            .map(log => ({
+                id: log.id,
+                animal_id: log.animal_id,
+                title: `Fed ${log.animals?.name || 'Animal'}`,
+                type: LogType.FEED,
+                due_date: log.log_date,
+                completed: true,
+                notes: log.notes,
+                created_at: log.created_at
+            } as unknown as Task));
+        
+        return [...baseTasks, ...mappedLogs].sort((a, b) => (b.due_date).localeCompare(a.due_date));
+    }
+
+    return baseTasks.sort((a, b) => (a.due_date).localeCompare(b.due_date));
+  }, [tasks, feedingLogs, viewFilterAnimalId, viewScope]);
 
   const animalGroups = useMemo(() => {
       const groups = new Map<string, { animal: Animal, tasks: Task[] }>();
@@ -341,6 +366,15 @@ const FeedingSchedule: React.FC = () => {
                                      <button onClick={() => setViewScope('upcoming')} className={`px-2 py-1 rounded-md text-[10px] font-medium transition-all ${viewScope === 'upcoming' ? 'bg-white text-slate-900 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>Upcoming</button>
                                      <button onClick={() => setViewScope('history')} className={`px-2 py-1 rounded-md text-[10px] font-medium transition-all flex items-center gap-1 ${viewScope === 'history' ? 'bg-white text-slate-900 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}><History size={12}/> History</button>
                                  </div>
+                                 
+                                 {viewScope === 'history' && (
+                                     <input 
+                                        type="date" 
+                                        value={viewDate} 
+                                        onChange={(e) => setViewDate(e.target.value)}
+                                        className="px-2 py-1 bg-white border border-slate-200 rounded-md text-[10px] font-medium text-slate-700 focus:ring-1 focus:ring-indigo-500 outline-none"
+                                     />
+                                 )}
 
                                  {/* Layout Toggle */}
                                  <div className="bg-slate-100 p-0.5 rounded-lg flex border border-slate-200 hidden sm:flex">

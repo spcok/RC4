@@ -1,68 +1,18 @@
-import { useState, useEffect } from 'react';
-import { Animal, Task } from '../../types';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 
-export function useFeedingScheduleData() {
-  const [animals, setAnimals] = useState<Animal[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export function useFeedingScheduleData(date: string) {
+  return useQuery({
+    queryKey: ['feeding_logs', date],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('daily_logs')
+        .select('*, animals(name, species)')
+        .eq('log_type', 'FEEDING')
+        .eq('log_date', date);
 
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadData = async () => {
-      try {
-        setIsLoading(true);
-        const [
-          { data: animalsData },
-          { data: tasksData }
-        ] = await Promise.all([
-          supabase.from('animals').select('*'),
-          supabase.from('tasks').select('*')
-        ]);
-
-        if (isMounted) {
-          setAnimals((animalsData || []) as Animal[]);
-          setTasks((tasksData || []) as Task[]);
-          setIsLoading(false);
-        }
-      } catch (err) {
-        console.error('Failed to load feeding schedule data:', err);
-        if (isMounted) setIsLoading(false);
-      }
-    };
-
-    loadData();
-    return () => { isMounted = false; };
-  }, []);
-
-  const addTasks = async (newTasks: Task[]) => {
-    try {
-      const { error } = await supabase.from('tasks').insert(newTasks.map(task => ({
-        ...task,
-        id: crypto.randomUUID(),
-        created_at: new Date().toISOString(),
-      })));
       if (error) throw error;
-    } catch (err) {
-      console.error('Failed to add tasks:', err);
-    }
-  };
-
-  const deleteTask = async (id: string) => {
-    try {
-      const { error } = await supabase.from('tasks').delete().eq('id', id);
-      if (error) throw error;
-    } catch (err) {
-      console.error('Failed to delete task:', err);
-    }
-  };
-
-  return {
-    animals,
-    tasks,
-    isLoading,
-    addTasks,
-    deleteTask
-  };
+      return data;
+    },
+  });
 }

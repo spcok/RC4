@@ -41,10 +41,19 @@ export const useTaskData = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] })
   });
 
+  const deleteTaskMutation = useMutation({
+    mutationFn: async (taskId: string) => {
+      const { error } = await supabase.from('tasks').delete().eq('id', taskId);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] })
+  });
+
   return { 
     tasks, 
     isLoading, 
     addTask: addTaskMutation.mutateAsync, 
-    completeTask: completeTaskMutation.mutateAsync 
+    completeTask: completeTaskMutation.mutateAsync,
+    deleteTask: deleteTaskMutation.mutateAsync
   };
 };
