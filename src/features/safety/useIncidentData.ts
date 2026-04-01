@@ -1,61 +1,52 @@
-import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '../../lib/supabase';
 import { Incident } from '../../types';
 
 export const useIncidentData = () => {
-  const [incidents, setIncidents] = useState<Incident[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterSeverity, setFilterSeverity] = useState('ALL');
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    let isMounted = true;
-    
-
-    const loadData = async () => {
-      try {
-        console.log("☢️ [Zero Dawn] Incident data loading is neutralized.");
-        if (isMounted) {
-          setIncidents([]);
-          setIsLoading(false);
-        }
-      } catch (err) {
-        console.error('Failed to load incident data:', err);
-        if (isMounted) setIsLoading(false);
-      }
-    };
-
-    loadData();
-
-    return () => {
-      isMounted = false;
-      // if (sub) sub.unsubscribe();
-    };
-  }, []);
-
-  const filteredIncidents = incidents.filter(i => {
-    const matchesSearch = i.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSeverity = filterSeverity === 'ALL' || i.severity === filterSeverity;
-    return matchesSearch && matchesSeverity;
+  const { data: incidents = [], isLoading } = useQuery({
+    queryKey: ['incident_reports'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('incident_reports').select('*');
+      if (error) throw error;
+      return (data || []).map(i => ({
+        id: i.id,
+        description: i.description,
+        severity: i.severity,
+        date: i.date,
+        reporterId: i.reporter_id,
+        createdAt: i.created_at
+      })) as Incident[];
+    }
   });
 
-  const addIncident = async (incident: Omit<Incident, 'id'>) => {
-    console.log("☢️ [Zero Dawn] Add incident is neutralized.", incident);
-    alert("Database engine is neutralized. Incident cannot be added.");
-  };
+  const addIncidentMutation = useMutation({
+    mutationFn: async (incident: Omit<Incident, 'id'>) => {
+      const { data, error } = await supabase.from('incident_reports').insert([{
+        description: incident.description,
+        severity: incident.severity,
+        date: incident.date,
+        reporter_id: incident.reporterId
+      }]).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['incident_reports'] })
+  });
 
-  const deleteIncident = async (id: string) => {
-    console.log("☢️ [Zero Dawn] Delete incident is neutralized.", id);
-    alert("Database engine is neutralized. Incident cannot be deleted.");
-  };
+  const deleteIncidentMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('incident_reports').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['incident_reports'] })
+  });
 
   return {
-    incidents: filteredIncidents,
+    incidents,
     isLoading,
-    searchTerm,
-    setSearchTerm,
-    filterSeverity,
-    setFilterSeverity,
-    addIncident,
-    deleteIncident
+    addIncident: addIncidentMutation.mutateAsync,
+    deleteIncident: deleteIncidentMutation.mutateAsync
   };
 };

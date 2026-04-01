@@ -1,49 +1,52 @@
-import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '../../lib/supabase';
 import { FirstAidLog } from '../../types';
 
 export function useFirstAidData() {
-  const [logs, setLogs] = useState<FirstAidLog[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    let isMounted = true;
-    
+  const { data: logs = [], isLoading } = useQuery({
+    queryKey: ['first_aid_logs'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('first_aid_logs').select('*');
+      if (error) throw error;
+      return (data || []).map(l => ({
+        id: l.id,
+        date: l.date,
+        staffId: l.staff_id,
+        incidentDescription: l.incident_description,
+        treatmentProvided: l.treatment_provided,
+        createdAt: l.created_at
+      })) as FirstAidLog[];
+    }
+  });
 
-    const loadData = async () => {
-      try {
-        console.log("☢️ [Zero Dawn] First aid data loading is neutralized.");
-        if (isMounted) {
-          setLogs([]);
-          setIsLoading(false);
-        }
-      } catch (err) {
-        console.error('Failed to load first aid data:', err);
-        if (isMounted) setIsLoading(false);
-      }
-    };
+  const addFirstAidMutation = useMutation({
+    mutationFn: async (log: Omit<FirstAidLog, 'id'>) => {
+      const { data, error } = await supabase.from('first_aid_logs').insert([{
+        date: log.date,
+        staff_id: log.staffId,
+        incident_description: log.incidentDescription,
+        treatment_provided: log.treatmentProvided
+      }]).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['first_aid_logs'] })
+  });
 
-    loadData();
-
-    return () => {
-      isMounted = false;
-      // if (sub) sub.unsubscribe();
-    };
-  }, []);
-
-  const addFirstAid = async (log: Omit<FirstAidLog, 'id'>) => {
-    console.log("☢️ [Zero Dawn] Add first aid is neutralized.", log);
-    alert("Database engine is neutralized. Log cannot be added.");
-  };
-
-  const deleteFirstAid = async (id: string) => {
-    console.log("☢️ [Zero Dawn] Delete first aid is neutralized.", id);
-    alert("Database engine is neutralized. Log cannot be deleted.");
-  };
+  const deleteFirstAidMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('first_aid_logs').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['first_aid_logs'] })
+  });
 
   return {
     logs,
     isLoading,
-    addFirstAid,
-    deleteFirstAid
+    addFirstAid: addFirstAidMutation.mutateAsync,
+    deleteFirstAid: deleteFirstAidMutation.mutateAsync
   };
 }

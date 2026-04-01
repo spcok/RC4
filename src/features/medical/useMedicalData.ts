@@ -6,9 +6,9 @@ export const useMedicalData = (animalId?: string) => {
   const queryClient = useQueryClient();
 
   const { data: clinicalNotes = [], isLoading: notesLoading } = useQuery({
-    queryKey: ['clinical_notes', animalId],
+    queryKey: ['medical_logs', animalId],
     queryFn: async () => {
-      let query = supabase.from('clinical_notes').select('*');
+      let query = supabase.from('medical_logs').select('*');
       if (animalId) {
         query = query.eq('animal_id', animalId);
       }
@@ -121,11 +121,11 @@ export const useMedicalData = (animalId?: string) => {
         created_at: new Date().toISOString(),
         is_deleted: false
       };
-      const { data, error } = await supabase.from('clinical_notes').insert([payload]).select().single();
+      const { data, error } = await supabase.from('medical_logs').insert([payload]).select().single();
       if (error) throw error;
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['clinical_notes'] })
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['medical_logs'] })
   });
 
   const addMarChartMutation = useMutation({
@@ -194,12 +194,12 @@ export const useMedicalData = (animalId?: string) => {
       if (note.integritySeal) payload.integrity_seal = note.integritySeal;
       if (note.isDeleted !== undefined) payload.is_deleted = note.isDeleted;
 
-      const { data, error } = await supabase.from('clinical_notes')
+      const { data, error } = await supabase.from('medical_logs')
         .update(payload).eq('id', note.id).select().single();
       if (error) throw error;
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['clinical_notes'] })
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['medical_logs'] })
   });
 
   const updateQuarantineRecordMutation = useMutation({
