@@ -22,7 +22,7 @@ export const useRoleSettings = () => {
       const { data } = await supabase
         .from('role_permissions')
         .select('id')
-        .eq('role', role.toLowerCase())
+        .ilike('role', role.trim())
         .maybeSingle();
 
       if (data) {

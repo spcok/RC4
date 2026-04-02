@@ -48,7 +48,7 @@ export function usePermissions(): Record<string, boolean | string> & { isLoading
       const { data, error } = await supabase
         .from('role_permissions')
         .select('*')
-        .eq('role', currentRole.toLowerCase())
+        .ilike('role', currentRole.trim())
         .maybeSingle();
 
       if (error) {

@@ -17,6 +17,7 @@ import {
   Loader2, Accessibility
 } from 'lucide-react';
 import { A11yControlPanel } from './A11yControlPanel';
+import { ClockInButton } from '../staff/ClockInButton';
 
 const NAVIGATION_GROUPS = [
   {
@@ -246,6 +247,7 @@ export default function Layout() {
             </button>
           </div>
           <div className="flex items-center space-x-4">
+            <ClockInButton />
             <span className="text-sm font-medium text-slate-700">
               {currentUser?.name || currentUser?.email}
             </span>
