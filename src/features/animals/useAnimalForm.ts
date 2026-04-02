@@ -46,6 +46,7 @@ export const animalFormSchema = z.object({
   misting_frequency: z.string().nullable().optional(),
   acquisition_type: z.enum(['BORN', 'TRANSFERRED_IN', 'RESCUE', 'UNKNOWN']).nullable().optional(),
   critical_husbandry_notes: z.string().nullable().optional(),
+  is_boarding: z.boolean().optional(),
 });
 
 export type AnimalFormData = z.infer<typeof animalFormSchema>;
@@ -97,6 +98,7 @@ export function useAnimalForm({ initialData }: Omit<UseAnimalFormProps, 'onClose
       target_humidity_max_percent: initialData.target_humidity_max_percent,
       misting_frequency: initialData.misting_frequency || '',
       acquisition_type: initialData.acquisition_type || 'UNKNOWN',
+      is_boarding: initialData.is_boarding || false,
       critical_husbandry_notes: initialData.critical_husbandry_notes?.join('\n') || '',
     } : {
       name: '',
@@ -135,6 +137,7 @@ export function useAnimalForm({ initialData }: Omit<UseAnimalFormProps, 'onClose
       target_humidity_max_percent: undefined,
       misting_frequency: '',
       acquisition_type: 'UNKNOWN',
+      is_boarding: false,
       critical_husbandry_notes: '',
     },
   });

@@ -144,12 +144,14 @@ const AnimalFormModal: React.FC<AnimalFormModalProps> = ({ isOpen, onClose, init
     const flightGrams = convertToGrams(weightUnit, flightWeightValues);
     const winterGrams = convertToGrams(weightUnit, winterWeightValues);
 
-    // Scrub empty strings from UUID fields to prevent Postgres syntax errors
+    // Scrub empty strings or non-UUIDs from UUID fields to prevent Postgres syntax errors
+    const isUUID = (str: string | null | undefined) => str && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+    
     const sanitizedData = {
       ...data,
-      parent_mob_id: (data.parent_mob_id === "" || data.parent_mob_id === null ? undefined : data.parent_mob_id) as string | undefined,
-      sire_id: (data.sire_id === "" || data.sire_id === null ? undefined : data.sire_id) as string | undefined,
-      dam_id: (data.dam_id === "" || data.dam_id === null ? undefined : data.dam_id) as string | undefined,
+      parent_mob_id: (isUUID(data.parent_mob_id) ? data.parent_mob_id : null) as string | null,
+      sire_id: (isUUID(data.sire_id) ? data.sire_id : null) as string | null,
+      dam_id: (isUUID(data.dam_id) ? data.dam_id : null) as string | null,
       dob: (data.dob === "" || data.dob === null ? undefined : data.dob) as string | undefined,
       acquisition_date: (data.acquisition_date === "" || data.acquisition_date === null ? undefined : data.acquisition_date) as string | undefined,
       microchip_id: (data.microchip_id === "" || data.microchip_id === null ? undefined : data.microchip_id) as string | undefined,
@@ -431,6 +433,18 @@ const AnimalFormModal: React.FC<AnimalFormModalProps> = ({ isOpen, onClose, init
                                     </div>
                                 </div>
                             )}
+
+                            <div className="bg-orange-50 p-4 rounded-xl border border-orange-200 space-y-2">
+                                <label className="flex items-center gap-3 cursor-pointer">
+                                    <input type="checkbox" {...register('is_boarding')} className="w-5 h-5 text-orange-600 rounded border-orange-300 focus:ring-orange-500" />
+                                    <span className="text-sm font-bold text-orange-900">Is this a boarding animal?</span>
+                                </label>
+                                {watch('is_boarding') && (
+                                    <p className="text-xs text-orange-700 font-medium flex items-center gap-1.5 pl-8">
+                                        ⚠️ Boarding Animal: This record will be excluded from official ZLA census reports.
+                                    </p>
+                                )}
+                            </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
                                 <div className="sm:col-span-7">

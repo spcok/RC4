@@ -185,6 +185,7 @@ export interface Animal {
   water_tipping_temp?: number;
   ambient_temp_only?: boolean;
   acquisition_type?: 'BORN' | 'TRANSFERRED_IN' | 'RESCUE' | 'UNKNOWN';
+  is_boarding?: boolean;
   created_at?: string;
   updated_at?: string;
   is_deleted?: boolean;

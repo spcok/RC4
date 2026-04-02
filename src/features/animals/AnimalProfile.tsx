@@ -23,7 +23,6 @@ export default function AnimalProfile({ animalId, onBack }: Props) {
   const [activeTab, setActiveTab] = useState<'profile' | 'medical' | 'husbandry'>('profile');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSignGeneratorOpen, setIsSignGeneratorOpen] = useState(false);
-  const [isArchiveOpen, setIsArchiveOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -69,7 +68,15 @@ export default function AnimalProfile({ animalId, onBack }: Props) {
           <div>
             <div className="flex justify-between items-start">
               <h1 className="text-3xl font-bold text-slate-900">{animal.name}</h1>
-              <IUCNBadge status={animal.red_list_status} />
+              <div className="flex gap-2">
+                {animal.is_boarding && (
+                  <span className="px-2 py-1 bg-orange-100 text-orange-800 text-xs font-bold rounded-full uppercase">Boarding</span>
+                )}
+                {animal.archived && (
+                  <span className="px-2 py-1 bg-slate-200 text-slate-700 text-xs font-bold rounded-full uppercase">Archived</span>
+                )}
+                <IUCNBadge status={animal.red_list_status} />
+              </div>
             </div>
             <div className="flex flex-col gap-0.5 mb-4">
               <p className="text-slate-500 font-mono text-sm">ID: {animal.id}</p>
@@ -138,7 +145,7 @@ export default function AnimalProfile({ animalId, onBack }: Props) {
           <ProfileActionBar
             onEdit={() => setIsEditModalOpen(true)}
             onSign={() => setIsSignGeneratorOpen(true)}
-            onArchive={() => setIsArchiveOpen(true)}
+            animal={animal}
           />
         </div>
       </div>
@@ -179,19 +186,6 @@ export default function AnimalProfile({ animalId, onBack }: Props) {
             />
           </Suspense>
         )
-      )}
-      
-      {isArchiveOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg">
-            <h2 className="text-lg font-bold">Archive Animal</h2>
-            <p>Are you sure you want to archive {animal.name}?</p>
-            <div className="flex gap-2 mt-4">
-              <button onClick={() => setIsArchiveOpen(false)} className="px-4 py-2 bg-slate-200 rounded">Cancel</button>
-              <button onClick={() => { console.log('Archive animal', animal.id); setIsArchiveOpen(false); }} className="px-4 py-2 bg-red-600 text-white rounded">Archive</button>
-            </div>
-          </div>
-        </div>
       )}
 
       <div className="border-b border-slate-200">

@@ -60,7 +60,13 @@ const AnimalsList = () => {
             ) : (
                 animals.map(animal => (
                     <div key={animal.id} className="p-4 border-b border-slate-100 cursor-pointer hover:bg-slate-50 transition-colors" onClick={() => handleSelectAnimal(animal)}>
-                        <span className="font-bold text-slate-900">{animal.name}</span> <span className="text-slate-500">- {animal.species}</span>
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <span className="font-bold text-slate-900">{animal.name}</span>
+                                {animal.is_boarding && <span className="ml-2 px-2 py-0.5 bg-orange-100 text-orange-800 text-[10px] font-bold rounded-full uppercase">Boarding</span>}
+                                <span className="text-slate-500 ml-2">- {animal.species}</span>
+                            </div>
+                        </div>
                     </div>
                 ))
             )}
@@ -75,7 +81,7 @@ const AnimalsList = () => {
                   <div className="flex justify-between items-center">
                     <div>
                       <div className="font-bold text-slate-900">{animal.name}</div>
-                      <div className="text-sm text-slate-500">{animal.species}</div>
+                      <div className="text-sm text-slate-500">{animal.species || animal.category || 'Unknown Group'}</div>
                     </div>
                     <div className="text-right text-xs text-slate-400">
                       <div>Reason: {animal.archive_reason || 'Unknown'}</div>

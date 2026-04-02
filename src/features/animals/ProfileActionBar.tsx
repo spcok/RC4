@@ -1,44 +1,76 @@
-import React from 'react';
-import { Archive, Edit2, FileText } from 'lucide-react';
+import React, { useState } from 'react';
+import { Archive, Edit2, FileText, RefreshCw } from 'lucide-react';
 import { usePermissions } from '@/src/hooks/usePermissions';
-
-import { UserRole } from '@/src/types';
+import { UserRole, Animal } from '@/src/types';
+import { ArchiveAnimalModal } from './ArchiveAnimalModal';
+import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '../../lib/supabase';
 
 interface Props {
   onEdit: () => void;
   onSign: () => void;
-  onArchive: () => void;
+  animal: Animal;
 }
 
-export const ProfileActionBar: React.FC<Props> = ({ onEdit, onSign, onArchive }) => {
+export const ProfileActionBar: React.FC<Props> = ({ onEdit, onSign, animal }) => {
   const permissions = usePermissions();
+  const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
+  const queryClient = useQueryClient();
   
   // RBAC: Archive permission check
   const canArchive = permissions.archive_animals || permissions.role === UserRole.ADMIN || permissions.role === UserRole.OWNER;
 
+  const handleReactivate = async () => {
+    try {
+      const { error } = await supabase.rpc('reactivate_animal_sub_account', { p_animal_id: animal.id });
+      if (error) throw error;
+      await queryClient.invalidateQueries({ queryKey: ['animals'] });
+      window.alert('Animal reactivated successfully!');
+    } catch (err: any) {
+      console.error('Reactivate error:', err);
+      window.alert(`Failed to reactivate animal: ${err.message}`);
+    }
+  };
+
   return (
     <div className="flex gap-2 mt-4">
-      <button 
-        onClick={onEdit}
-        className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white text-sm rounded-lg hover:bg-emerald-700 transition"
-      >
-        <Edit2 size={16} /> Edit
-      </button>
-      <button 
-        onClick={onSign}
-        className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 transition"
-      >
-        <FileText size={16} /> Sign Generator
-      </button>
-      {canArchive && (
+      {animal.archived ? (
         <button 
-          onClick={onArchive}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 text-sm rounded-lg hover:bg-red-100 transition"
-          // Offline Failover: Archive action is queued in 14-day local cache if Supabase is unreachable.
+          onClick={handleReactivate}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition"
         >
-          <Archive size={16} /> Archive
+          <RefreshCw size={16} /> Reactivate Animal
         </button>
+      ) : (
+        <>
+          <button 
+            onClick={onEdit}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white text-sm rounded-lg hover:bg-emerald-700 transition"
+          >
+            <Edit2 size={16} /> Edit
+          </button>
+          <button 
+            onClick={onSign}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 transition"
+          >
+            <FileText size={16} /> Sign Generator
+          </button>
+          {canArchive && (
+            <button 
+              onClick={() => setIsArchiveModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 text-sm rounded-lg hover:bg-red-100 transition"
+            >
+              <Archive size={16} /> Archive
+            </button>
+          )}
+        </>
       )}
+      
+      <ArchiveAnimalModal 
+        isOpen={isArchiveModalOpen} 
+        onClose={() => setIsArchiveModalOpen(false)} 
+        animal={animal}
+      />
     </div>
   );
 };
